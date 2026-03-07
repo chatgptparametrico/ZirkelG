@@ -309,16 +309,17 @@
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
             
-            // Base color
-            ctx.fillStyle = '#999999';
+            // Base color - Much lighter, almost white/light grey for marble/white cement
+            ctx.fillStyle = '#e0e0e0';
             ctx.fillRect(0, 0, 512, 512);
             
-            // Smoothed cloud-like noise for "Hormigon Alisado"
+            // Smoothed cloud-like noise for "Hormigon Alisado Blanco"
             for(let i=0; i<1500; i++) {
                 const x = Math.random() * 512;
                 const y = Math.random() * 512;
                 const r = Math.random() * 25 + 5;
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+                // Soft sweeping marble-like clouds
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(200,200,200,0.04)';
                 ctx.beginPath();
                 ctx.arc(x, y, r, 0, Math.PI*2);
                 ctx.fill();
@@ -378,9 +379,9 @@
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0xaaaaaa, // Lightened polished concrete
+            color: 0xcccccc, // Brighter base for the floor reflection
             map: concreteTex,
-            roughness: 0.25, // fairly smooth / polished
+            roughness: 0.20, // Slightly more polished for marble feel
             metalness: 0.15
         });
 
@@ -420,6 +421,10 @@
             
             const panelGeo = new THREE.PlaneGeometry(CONFIG.tileSize - 0.5, CONFIG.tileSize - 0.5);
             const panelMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // Solid glowing white ceiling panel
+
+            // Linear corridor lights (thin strips)
+            const linearLightGeo = new THREE.BoxGeometry(0.2, 0.05, CONFIG.tileSize * 0.8);
+            const linearLightMat = new THREE.MeshBasicMaterial({color: 0xffffff});
 
             // Walls and Architectural details
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
@@ -478,6 +483,24 @@
                              bench.userData.box.copy(bench.geometry.boundingBox).applyMatrix4(bench.matrixWorld);
                              STATE.meshes.walls.push(bench);
                         }
+                    } else if (grid[z][x] === 0) {
+                        // Linear lights on ceiling in corridors (Air cells)
+                        // Don't spawn them everywhere, maybe in a pattern, but the user asked for linear lights in corridors.
+                        // Let's spawn a strip in the middle of every empty corridor space.
+                        // To look directional, we should rotate it if the corridor goes East-West vs North-South.
+                        // For simplicity, a central cross or just a single line oriented North-South.
+                        const corridorLight = new THREE.Mesh(linearLightGeo, linearLightMat);
+                        corridorLight.position.set(x * CONFIG.tileSize, CONFIG.wallHeight - 0.025, z * CONFIG.tileSize);
+                        
+                        // Decide rotation roughly based on neighbors (simple heuristic)
+                        const hasNorthWall = (z > 0 && grid[z-1][x] === 1);
+                        const hasSouthWall = (z < rows-1 && grid[z+1][x] === 1);
+                        
+                        if (hasNorthWall && hasSouthWall) {
+                            corridorLight.rotation.y = Math.PI / 2; // East/West run
+                        }
+                        
+                        scene.add(corridorLight);
                     }
                 }
             }
