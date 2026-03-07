@@ -546,76 +546,76 @@
             const t = CONFIG.tileSize; // 4
             
             STATE.galleryData.artworks = [
-                // New ShapeDiver Artwork Data
+                // Replacement Unsplash Artwork Data (CORS Safe)
                 {
-                    id: "sd_1", title: "Z zirkel cad a158", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a10c2918-41b9-438a-9771-7061a6624431_thumb.jpg",
+                    id: "sd_1", title: "Z zirkel cad a158", description: "Esquema conceptual paramétrico.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 1 * t, y: h, z: 1 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(1,1) North Wall
                 },
                 {
-                    id: "sd_2", title: "Z zirkel cad a266", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a10ace74-68a4-4d65-a0a1-6440513f4659_thumb.jpg",
+                    id: "sd_2", title: "Z zirkel cad a266", description: "Celosías y sombras proyectadas.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1541888049871-3312c9c7f68c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 3 * t + t/2 - 0.01, y: h, z: 1 * t,
                     rx: 0, ry: -Math.PI/2, rz: 0 // Cell(3,1) East Wall
                 },
                 {
-                    id: "sd_3", title: "Zirkel Comparador CAD a253", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a0e27182-9c5b-4ce8-ada6-235ed00b55ed_thumb.jpg",
+                    id: "sd_3", title: "Zirkel Comparador CAD a253", description: "Superficies curvas de cristal.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 1 * t - t/2 + 0.01, y: h, z: 2 * t,
                     rx: 0, ry: Math.PI/2, rz: 0 // Cell(1,2) West Wall
                 },
                 {
-                    id: "sd_4", title: "Zirkel Comparador CAD a250", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a0e0757d-3359-460d-8d38-0eacc04997f4_thumb.jpg",
+                    id: "sd_4", title: "Zirkel Comparador CAD a250", description: "Geometría sagrada en techos.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 5 * t, y: h, z: 1 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(5,1) North Wall
                 },
                 {
-                    id: "sd_5", title: "Zirkel Viento Rectangular (REV2)", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a08ffd90-cb2e-4a08-9a38-452cb4397e72_thumb.jpg",
+                    id: "sd_5", title: "Zirkel Viento Rectangular (REV2)", description: "Tensiones de acero.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 9 * t + t/2 - 0.01, y: h, z: 1 * t,
                     rx: 0, ry: -Math.PI/2, rz: 0 // Cell(9,1) East Wall
                 },
                 {
-                    id: "sd_6", title: "Zirkel Grilla Plana (REV2)", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a08fd2c6-cc03-410b-a06a-a6b0d198d521_thumb.jpg",
+                    id: "sd_6", title: "Zirkel Grilla Plana (REV2)", description: "Cuadrícula expuesta.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1449844908441-8829872d2607?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 15 * t + t/2 - 0.01, y: h, z: 4 * t,
                     rx: 0, ry: -Math.PI/2, rz: 0 // Cell(15,4) East Wall in exhibition
                 },
                 {
-                    id: "sd_7", title: "Zirkel Viento Edificio", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a08fc2d2-2a91-4d10-b4ec-6933df56ef0b_thumb.jpg",
+                    id: "sd_7", title: "Zirkel Viento Edificio", description: "Torre paramétrica torcida.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1482855549413-2a669b6e00aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 10 * t, y: h, z: 2 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(10,2) North Wall
                 },
                 {
-                    id: "sd_8", title: "Zirkel Láminas Libres", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a08c0e63-3744-426f-9bb1-e04d4509ca5b_thumb.jpg",
+                    id: "sd_8", title: "Zirkel Láminas Libres", description: "Flujo libre y rampas.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1543169865-c9a9ccb24982?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 1 * t, y: h, z: 3 * t + t/2 - 0.01,
                     rx: 0, ry: Math.PI, rz: 0 // Cell(1,3) South Wall
                 },
                 {
-                    id: "sd_9", title: "Zirkel Estructuras Metálicas", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a073855c-a8fd-4205-adb0-bee6988a2caa_thumb.jpg",
+                    id: "sd_9", title: "Zirkel Estructuras Metálicas", description: "Tubos interconectados.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1524230572899-a752b38b584e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 7 * t + t/2 - 0.01, y: h, z: 7 * t,
                     rx: 0, ry: -Math.PI/2, rz: 0 // Cell(7,7) East Wall
                 },
                 {
-                    id: "sd_10", title: "Zirkel Comparador CAD a246", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a073b010-7773-4a20-a2cb-4870826dc74a_thumb.jpg",
+                    id: "sd_10", title: "Zirkel Comparador CAD a246", description: "Domos geodésicos.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1506544777-64cfbea6ab16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 11 * t, y: h, z: 6 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(11,6) North Wall in exhibition
                 },
                 {
-                    id: "sd_11", title: "Zirkel Sílex Cad v 243", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a05781bc-4b1d-4634-8229-415ff79a436a_thumb.jpg",
+                    id: "sd_11", title: "Zirkel Sílex Cad v 243", description: "Cúpula interior minimalista.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1498622205943-26dcbed99cb3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 12 * t, y: h, z: 8 * t + t/2 - 0.01,
                     rx: 0, ry: Math.PI, rz: 0 // Cell(12,8) South Wall in exhibition
                 },
                 {
-                    id: "sd_12", title: "Zirkel Comparador CAD a243", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
-                    image: "https://sduse1-assets.shapediver.com/images/model/a055b07b-1d83-4649-a4a2-620293b14842_thumb.jpg",
+                    id: "sd_12", title: "Zirkel Comparador CAD a243", description: "Techo abovedado de concreto.", author: "jfarezatfau",
+                    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 12 * t + t/2 - 0.01, y: h, z: 7 * t,
                     rx: 0, ry: -Math.PI/2, rz: 0 // Cell(12,7) East Wall in exhibition
                 },
