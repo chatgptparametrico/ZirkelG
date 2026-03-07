@@ -279,18 +279,86 @@
         });
 
         // ==========================================
+        // TEXTURE GENERATION
+        // ==========================================
+        function createConcreteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Base color
+            ctx.fillStyle = '#999999';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Smoothed cloud-like noise for "Hormigon Alisado"
+            for(let i=0; i<1500; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const r = Math.random() * 25 + 5;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI*2);
+                ctx.fill();
+            }
+            // Fine sharp noise
+            for(let i=0; i<60000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+                ctx.fillRect(x, y, 2, 2);
+            }
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(12, 12);
+            return tex;
+        }
+
+        function createPaintBumpTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#888888';
+            ctx.fillRect(0, 0, 256, 256);
+            
+            // Fine stipple noise for paint bump
+            for(let i=0; i<40000; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#000000';
+                ctx.fillRect(x, y, 1, 1);
+            }
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(6, 6);
+            return tex;
+        }
+
+        const concreteTex = createConcreteTexture();
+        const paintBumpTex = createPaintBumpTexture();
+
+        // ==========================================
         // MAP GENERATION
         // ==========================================
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0xf5f5f5, // Off-white clean gallery drywall
-            roughness: 0.8,
-            metalness: 0.05
+            color: 0xffffff, // Pure white for walls
+            roughness: 0.95,
+            metalness: 0.02,
+            bumpMap: paintBumpTex,
+            bumpScale: 0.003
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0x999999, // Polished concrete floor
-            roughness: 0.3,
-            metalness: 0.1
+            color: 0xaaaaaa, // Lightened polished concrete
+            map: concreteTex,
+            roughness: 0.25, // fairly smooth / polished
+            metalness: 0.15
         });
 
         // Build walls
@@ -330,21 +398,42 @@
             const panelGeo = new THREE.PlaneGeometry(CONFIG.tileSize - 0.5, CONFIG.tileSize - 0.5);
             const panelMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // Solid glowing white ceiling panel
 
-            // Walls
+            // Walls and Architectural details
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
             
+            const zocaloGeo = new THREE.BoxGeometry(CONFIG.tileSize + 0.04, 0.15, CONFIG.tileSize + 0.04);
+            const zocaloMat = new THREE.MeshStandardMaterial({color: 0xe0e0e0, roughness: 0.4});
+            
+            const ceilingGapGeo = new THREE.BoxGeometry(CONFIG.tileSize + 0.02, 0.05, CONFIG.tileSize + 0.02);
+            const ceilingGapMat = new THREE.MeshStandardMaterial({color: 0xcccccc}); // Shadow molding gap
+
             for(let z=0; z<rows; z++) {
                 for(let x=0; x<cols; x++) {
                     if(grid[z][x] === 1) {
+                        const wallGroup = new THREE.Group();
+                        wallGroup.position.set(x * CONFIG.tileSize, 0, z * CONFIG.tileSize);
+
                         const mesh = new THREE.Mesh(wallGeo, wallMaterial);
-                        // Position centers
-                        mesh.position.set(x * CONFIG.tileSize, CONFIG.wallHeight/2, z * CONFIG.tileSize);
-                        scene.add(mesh);
+                        mesh.position.y = CONFIG.wallHeight/2;
+                        wallGroup.add(mesh);
                         
-                        // We store the bounding box for collision detection
+                        const zocalo = new THREE.Mesh(zocaloGeo, zocaloMat);
+                        zocalo.position.y = 0.075;
+                        wallGroup.add(zocalo);
+
+                        const topGap = new THREE.Mesh(ceilingGapGeo, ceilingGapMat);
+                        topGap.position.y = CONFIG.wallHeight - 0.025;
+                        wallGroup.add(topGap);
+
+                        scene.add(wallGroup);
+                        
+                        // Collision box tracking on the main wall
                         mesh.geometry.computeBoundingBox();
                         mesh.userData.box = new THREE.Box3();
-                        mesh.userData.box.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);
+                        
+                        // We must apply the translation of the group to the local box manually
+                        const worldMatrix = new THREE.Matrix4().makeTranslation(wallGroup.position.x, wallGroup.position.y + mesh.position.y, wallGroup.position.z);
+                        mesh.userData.box.copy(mesh.geometry.boundingBox).applyMatrix4(worldMatrix);
                         
                         STATE.meshes.walls.push(mesh);
                     } else if (grid[z][x] === 2) {
