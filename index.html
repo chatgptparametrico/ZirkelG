@@ -62,32 +62,43 @@
         }
         #minimap-canvas { width: 100%; height: 100%; }
 
-        /* Artwork Info Panel */
+        /* Artwork Info Panel / Small Page Modal */
         #info-panel {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.9);
-            background: rgba(10,10,10,0.9);
-            border: 1px solid #444;
-            padding: 40px;
-            border-radius: 8px;
-            max-width: 500px;
-            text-align: center;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            background: rgba(255, 255, 255, 0.95);
+            color: #111;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
             z-index: 50;
-            pointer-events: auto;
+            pointer-events: none;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow-y: auto;
         }
-        #info-panel.active { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
-        #info-panel h2 { margin: 0 0 10px 0; font-size: 2rem; color: #0df; }
-        #info-panel p { color: #ccc; line-height: 1.6; margin-bottom: 20px; }
-        #info-author { font-style: italic; color: #888; font-size: 0.9rem; }
+        #info-panel.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        #info-title { margin: 0; font-size: 2.5rem; border-bottom: 2px solid #ccc; padding-bottom: 10px; color: #111; }
+        #info-desc { margin: 0; font-size: 1.2rem; line-height: 1.6; color: #333; flex-grow: 1; white-space: pre-wrap; }
+        #info-author { margin: 0; font-size: 1rem; color: #666; font-style: italic; text-align: right; }
+        
         .close-btn { 
             position: absolute; top: 15px; right: 20px; background: none; border: none; 
-            color: #fff; font-size: 1.5rem; cursor: pointer; opacity: 0.6;
+            color: #111; font-size: 2rem; cursor: pointer; opacity: 0.5;
         }
         .close-btn:hover { opacity: 1; }
 
@@ -168,6 +179,7 @@
         <input type="text" id="tb-title" placeholder="Título" class="tb-input">
         <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width:150px;">
         <input type="text" id="tb-imgUrl" placeholder="URL de Imagen (Unsplash, etc.)" class="tb-input">
+        <textarea id="tb-desc" placeholder="Descripción extendida de la obra..." class="tb-input" style="height: 35px; resize: vertical; min-height: 35px; max-height: 150px;"></textarea>
         
         <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva Obra</button>
         <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>Eliminar Obra</button>
@@ -531,66 +543,78 @@
             const t = CONFIG.tileSize; // 4
             
             STATE.galleryData.artworks = [
+                // New ShapeDiver Artwork Data
                 {
-                    id: "art_1",
-                    title: "Estructura Modular",
-                    description: "Diseño algorítmico y cerramientos curvos.",
-                    author: "Arquitectura Paramétrica",
-                    image: "https://images.unsplash.com/photo-1543169865-c9a9ccb24982?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(1,1) North Wall (wall at z=0, face South)
+                    id: "sd_1", title: "Z zirkel cad a158", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a10c2918-41b9-438a-9771-7061a6624431_thumb.jpg",
                     x: 1 * t, y: h, z: 1 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0
+                    rx: 0, ry: 0, rz: 0 // Cell(1,1) North Wall
                 },
                 {
-                    id: "art_2",
-                    title: "Túneles Orgánicos",
-                    description: "Corredores iluminados y nervaduras estructurales.",
-                    author: "Zirkel Studio",
-                    image: "https://images.unsplash.com/photo-1506544777-64cfbea6ab16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(3,1) East Wall (wall at x=4, face West)
+                    id: "sd_2", title: "Z zirkel cad a266", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a10ace74-68a4-4d65-a0a1-6440513f4659_thumb.jpg",
                     x: 3 * t + t/2 - 0.01, y: h, z: 1 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0
+                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(3,1) East Wall
                 },
                 {
-                    id: "art_3",
-                    title: "Cubierta Ondulante",
-                    description: "Madera entrelazada y geometría compleja en techos.",
-                    author: "Diseño Computacional",
-                    image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(1,2) West Wall (wall at x=0, face East)
+                    id: "sd_3", title: "Zirkel Comparador CAD a253", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a0e27182-9c5b-4ce8-ada6-235ed00b55ed_thumb.jpg",
                     x: 1 * t - t/2 + 0.01, y: h, z: 2 * t,
-                    rx: 0, ry: Math.PI/2, rz: 0
+                    rx: 0, ry: Math.PI/2, rz: 0 // Cell(1,2) West Wall
                 },
                 {
-                    id: "art_4",
-                    title: "Retícula Vertical",
-                    description: "Fachadas repetitivas de cristal y tensores de acero.",
-                    author: "Zirkel",
-                    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(5,1) North Wall (wall at z=0, face South)
+                    id: "sd_4", title: "Zirkel Comparador CAD a250", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a0e0757d-3359-460d-8d38-0eacc04997f4_thumb.jpg",
                     x: 5 * t, y: h, z: 1 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0
+                    rx: 0, ry: 0, rz: 0 // Cell(5,1) North Wall
                 },
                 {
-                    id: "art_5",
-                    title: "Atrio Infinito",
-                    description: "Rampas de transición y curvas estructurales masivas.",
-                    author: "Diseño Espacial",
-                    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(9,1) East Wall (wall at x=10, face West)
+                    id: "sd_5", title: "Zirkel Viento Rectangular (REV2)", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a08ffd90-cb2e-4a08-9a38-452cb4397e72_thumb.jpg",
                     x: 9 * t + t/2 - 0.01, y: h, z: 1 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0
+                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(9,1) East Wall
                 },
                 {
-                    id: "art_6",
-                    title: "Gran Sala Diáfana",
-                    description: "Manejo de luz natural en exhibiciones.",
-                    author: "Constructora H.",
-                    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    // Cell(15,4) East Wall inside main exhibition
-                    // Cell (15,4) is Air. Wall at x=16. Face West.
+                    id: "sd_6", title: "Zirkel Grilla Plana (REV2)", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a08fd2c6-cc03-410b-a06a-a6b0d198d521_thumb.jpg",
                     x: 15 * t + t/2 - 0.01, y: h, z: 4 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0
+                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(15,4) East Wall in exhibition
+                },
+                {
+                    id: "sd_7", title: "Zirkel Viento Edificio", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a08fc2d2-2a91-4d10-b4ec-6933df56ef0b_thumb.jpg",
+                    x: 10 * t, y: h, z: 2 * t - t/2 + 0.01,
+                    rx: 0, ry: 0, rz: 0 // Cell(10,2) North Wall
+                },
+                {
+                    id: "sd_8", title: "Zirkel Láminas Libres", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a08c0e63-3744-426f-9bb1-e04d4509ca5b_thumb.jpg",
+                    x: 1 * t, y: h, z: 3 * t + t/2 - 0.01,
+                    rx: 0, ry: Math.PI, rz: 0 // Cell(1,3) South Wall
+                },
+                {
+                    id: "sd_9", title: "Zirkel Estructuras Metálicas", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a073855c-a8fd-4205-adb0-bee6988a2caa_thumb.jpg",
+                    x: 7 * t + t/2 - 0.01, y: h, z: 7 * t,
+                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(7,7) East Wall
+                },
+                {
+                    id: "sd_10", title: "Zirkel Comparador CAD a246", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a073b010-7773-4a20-a2cb-4870826dc74a_thumb.jpg",
+                    x: 11 * t, y: h, z: 6 * t - t/2 + 0.01,
+                    rx: 0, ry: 0, rz: 0 // Cell(11,6) North Wall in exhibition
+                },
+                {
+                    id: "sd_11", title: "Zirkel Sílex Cad v 243", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a05781bc-4b1d-4634-8229-415ff79a436a_thumb.jpg",
+                    x: 12 * t, y: h, z: 8 * t + t/2 - 0.01,
+                    rx: 0, ry: Math.PI, rz: 0 // Cell(12,8) South Wall in exhibition
+                },
+                {
+                    id: "sd_12", title: "Zirkel Comparador CAD a243", description: "Modelo Paramétrico en ShapeDiver.", author: "jfarezatfau",
+                    image: "https://sduse1-assets.shapediver.com/images/model/a055b07b-1d83-4649-a4a2-620293b14842_thumb.jpg",
+                    x: 12 * t + t/2 - 0.01, y: h, z: 7 * t,
+                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(12,7) East Wall in exhibition
                 }
             ];
             buildArtworks();
@@ -667,6 +691,7 @@
                 document.getElementById('tb-title').value = art.title;
                 document.getElementById('tb-author').value = art.author || '';
                 document.getElementById('tb-imgUrl').value = art.image;
+                document.getElementById('tb-desc').value = art.description || '';
                 document.getElementById('btn-delete').disabled = false;
             } else {
                 STATE.selectedArtwork = null;
@@ -674,6 +699,7 @@
                 document.getElementById('tb-title').value = '';
                 document.getElementById('tb-author').value = '';
                 document.getElementById('tb-imgUrl').value = '';
+                document.getElementById('tb-desc').value = '';
             }
         });
 
@@ -868,6 +894,7 @@
             const title = document.getElementById('tb-title').value || "Sin título";
             const author = document.getElementById('tb-author').value || "Zirkel";
             const url = document.getElementById('tb-imgUrl').value;
+            const desc = document.getElementById('tb-desc').value || "Nueva instalación en la galería.";
             
             if(!url) {
                 alert("La URL de la imagen es obligatoria.");
@@ -881,6 +908,7 @@
                     STATE.galleryData.artworks[idx].title = title;
                     STATE.galleryData.artworks[idx].author = author;
                     STATE.galleryData.artworks[idx].image = url;
+                    STATE.galleryData.artworks[idx].description = desc;
                 }
             } else {
                 // Add new at current physical camera position facing camera
@@ -893,7 +921,7 @@
                 const newArt = {
                     id: Date.now().toString(),
                     title: title,
-                    description: "Nueva instalación en la galería.",
+                    description: desc,
                     author: author,
                     image: url,
                     x: pos.x, y: pos.y, z: pos.z,
@@ -909,6 +937,7 @@
             document.getElementById('tb-title').value = '';
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
+            document.getElementById('tb-desc').value = '';
         };
 
         window.deleteArtwork = function() {
@@ -923,6 +952,7 @@
             document.getElementById('tb-title').value = '';
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
+            document.getElementById('tb-desc').value = '';
         };
 
         window.addEventListener('resize', onWindowResize, false);
