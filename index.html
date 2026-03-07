@@ -117,6 +117,12 @@
         .tb-btn:hover { background: #555; }
         .tb-btn.primary { background: #08f; border-color: #0af; }
         .tb-btn.primary:hover { background: #0af; }
+        .tb-btn.danger { background: #b22; border-color: #f33; }
+        .tb-btn.danger:hover { background: #f33; }
+        .tb-input {
+            background: #222; color: white; border: 1px solid #444; padding: 6px 10px;
+            border-radius: 4px; font-size: 0.9rem; flex-grow: 1; max-width: 250px;
+        }
 
         /* File Input */
         #import-input { display: none; }
@@ -158,9 +164,13 @@
 
     <!-- Edit Taskbar -->
     <div id="taskbar">
-        <span style="font-weight:bold; color:#888;">Gestor de Galería</span>
-        <button class="tb-btn primary" onclick="addNewArtwork()">+ Nueva Obra</button>
-        <button class="tb-btn" onclick="editSelectedArtwork()" id="btn-edit" disabled>Editar Seleccionada</button>
+        <span style="font-weight:bold; color:#888; font-size: 0.8rem; white-space: nowrap;">GESTOR DE GALERÍA</span>
+        <input type="text" id="tb-title" placeholder="Título" class="tb-input">
+        <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width:150px;">
+        <input type="text" id="tb-imgUrl" placeholder="URL de Imagen (Unsplash, etc.)" class="tb-input">
+        
+        <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva Obra</button>
+        <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>Eliminar Obra</button>
         <div style="flex-grow:1;"></div>
         <button class="tb-btn" onclick="exportGallery()">Exportar JSON</button>
         <button class="tb-btn" onclick="document.getElementById('import-input').click()">Importar JSON</button>
@@ -515,32 +525,74 @@
         // e.g., grid[1][1] is air
         camera.position.set(1 * CONFIG.tileSize, CONFIG.cameraHeight, 1 * CONFIG.tileSize);
 
-        // Vibrant dummy data for testing the bright aesthetic
+        // Vibrant dummy data of Parametric Structures properly attached to walls
         if(STATE.galleryData.artworks.length === 0) {
-            STATE.galleryData.artworks.push({
-                id: Date.now().toString(),
-                title: "Abstracto Paramétrico I",
-                description: "Una exploración de texturas vibrantes.",
-                author: "Zirkel Studio",
-                image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                // Grid cell 1,1 facing East
-                x: 1 * CONFIG.tileSize + CONFIG.tileSize/2 - 0.01,
-                y: CONFIG.wallHeight / 2 - 0.2,
-                z: 1 * CONFIG.tileSize,
-                rx: 0, ry: -Math.PI/2, rz: 0
-            });
-            STATE.galleryData.artworks.push({
-                id: (Date.now()+1).toString(),
-                title: "Estructuras II",
-                description: "Patrones urbanos en la arquitectura moderna.",
-                author: "Zirkel Studio",
-                image: "https://images.unsplash.com/photo-1574169208507-84376144848b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                // Grid cell 1,1 facing South
-                x: 1 * CONFIG.tileSize,
-                y: CONFIG.wallHeight / 2 - 0.2,
-                z: 1 * CONFIG.tileSize + CONFIG.tileSize/2 - 0.01,
-                rx: 0, ry: Math.PI, rz: 0
-            });
+            const h = CONFIG.wallHeight / 2 - 0.2; // roughly 1.8m height
+            const t = CONFIG.tileSize; // 4
+            
+            STATE.galleryData.artworks = [
+                {
+                    id: "art_1",
+                    title: "Estructura Modular",
+                    description: "Diseño algorítmico y cerramientos curvos.",
+                    author: "Arquitectura Paramétrica",
+                    image: "https://images.unsplash.com/photo-1543169865-c9a9ccb24982?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(1,1) North Wall (wall at z=0, face South)
+                    x: 1 * t, y: h, z: 1 * t - t/2 + 0.01,
+                    rx: 0, ry: 0, rz: 0
+                },
+                {
+                    id: "art_2",
+                    title: "Túneles Orgánicos",
+                    description: "Corredores iluminados y nervaduras estructurales.",
+                    author: "Zirkel Studio",
+                    image: "https://images.unsplash.com/photo-1506544777-64cfbea6ab16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(3,1) East Wall (wall at x=4, face West)
+                    x: 3 * t + t/2 - 0.01, y: h, z: 1 * t,
+                    rx: 0, ry: -Math.PI/2, rz: 0
+                },
+                {
+                    id: "art_3",
+                    title: "Cubierta Ondulante",
+                    description: "Madera entrelazada y geometría compleja en techos.",
+                    author: "Diseño Computacional",
+                    image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(1,2) West Wall (wall at x=0, face East)
+                    x: 1 * t - t/2 + 0.01, y: h, z: 2 * t,
+                    rx: 0, ry: Math.PI/2, rz: 0
+                },
+                {
+                    id: "art_4",
+                    title: "Retícula Vertical",
+                    description: "Fachadas repetitivas de cristal y tensores de acero.",
+                    author: "Zirkel",
+                    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(5,1) North Wall (wall at z=0, face South)
+                    x: 5 * t, y: h, z: 1 * t - t/2 + 0.01,
+                    rx: 0, ry: 0, rz: 0
+                },
+                {
+                    id: "art_5",
+                    title: "Atrio Infinito",
+                    description: "Rampas de transición y curvas estructurales masivas.",
+                    author: "Diseño Espacial",
+                    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(9,1) East Wall (wall at x=10, face West)
+                    x: 9 * t + t/2 - 0.01, y: h, z: 1 * t,
+                    rx: 0, ry: -Math.PI/2, rz: 0
+                },
+                {
+                    id: "art_6",
+                    title: "Gran Sala Diáfana",
+                    description: "Manejo de luz natural en exhibiciones.",
+                    author: "Constructora H.",
+                    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                    // Cell(15,4) East Wall inside main exhibition
+                    // Cell (15,4) is Air. Wall at x=16. Face West.
+                    x: 15 * t + t/2 - 0.01, y: h, z: 4 * t,
+                    rx: 0, ry: -Math.PI/2, rz: 0
+                }
+            ];
             buildArtworks();
         }
 
@@ -610,12 +662,18 @@
                 // Auto unlock to allow cursor editing if needed
                 controls.unlock();
                 
-                // Select for taskbar edits
+                // Select for taskbar edits and populate fields
                 STATE.selectedArtwork = art.id;
-                document.getElementById('btn-edit').disabled = false;
+                document.getElementById('tb-title').value = art.title;
+                document.getElementById('tb-author').value = art.author || '';
+                document.getElementById('tb-imgUrl').value = art.image;
+                document.getElementById('btn-delete').disabled = false;
             } else {
                 STATE.selectedArtwork = null;
-                document.getElementById('btn-edit').disabled = true;
+                document.getElementById('btn-delete').disabled = true;
+                document.getElementById('tb-title').value = '';
+                document.getElementById('tb-author').value = '';
+                document.getElementById('tb-imgUrl').value = '';
             }
         });
 
@@ -806,51 +864,65 @@
             reader.readAsText(file);
         };
 
-        window.addNewArtwork = function() {
-            // Simplified placeholder flow. A real app would use a form.
-            const url = prompt("URL de la imagen:");
-            if(!url) return;
-            const title = prompt("Título:") || "Sin título";
-            const desc = prompt("Descripción:") || "";
+        window.saveArtwork = function() {
+            const title = document.getElementById('tb-title').value || "Sin título";
+            const author = document.getElementById('tb-author').value || "Zirkel";
+            const url = document.getElementById('tb-imgUrl').value;
             
-            // Place exactly where the player is currently standing, facing the camera direction
-            const pos = camera.position.clone();
-            // Drop it to halfway up the wall
-            pos.y = CONFIG.wallHeight / 2; 
-            
-            // Move it slightly forward
-            const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
-            pos.add(dir.clone().multiplyScalar(2));
+            if(!url) {
+                alert("La URL de la imagen es obligatoria.");
+                return;
+            }
 
-            // Create Euler rotation facing the camera
-            const rot = new THREE.Euler(0, camera.rotation.y + Math.PI, 0, 'YXZ');
+            if(STATE.selectedArtwork) {
+                // Edit existing
+                const idx = STATE.galleryData.artworks.findIndex(a => a.id === STATE.selectedArtwork);
+                if(idx !== -1) {
+                    STATE.galleryData.artworks[idx].title = title;
+                    STATE.galleryData.artworks[idx].author = author;
+                    STATE.galleryData.artworks[idx].image = url;
+                }
+            } else {
+                // Add new at current physical camera position facing camera
+                const pos = camera.position.clone();
+                pos.y = CONFIG.wallHeight / 2; 
+                const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+                pos.add(dir.clone().multiplyScalar(2));
+                const rot = new THREE.Euler(0, camera.rotation.y + Math.PI, 0, 'YXZ');
 
-            const newArt = {
-                id: Date.now().toString(),
-                title: title,
-                description: desc,
-                author: "Usuario",
-                image: url,
-                x: pos.x, y: pos.y, z: pos.z,
-                rx: rot.x, ry: rot.y, rz: rot.z
-            };
-
-            STATE.galleryData.artworks.push(newArt);
+                const newArt = {
+                    id: Date.now().toString(),
+                    title: title,
+                    description: "Nueva instalación en la galería.",
+                    author: author,
+                    image: url,
+                    x: pos.x, y: pos.y, z: pos.z,
+                    rx: rot.x, ry: rot.y, rz: rot.z
+                };
+                STATE.galleryData.artworks.push(newArt);
+            }
             buildArtworks();
+            
+            // Clear selection logic so next click on Save makes a *new* artwork until an existing one is selected again
+            STATE.selectedArtwork = null;
+            document.getElementById('btn-delete').disabled = true;
+            document.getElementById('tb-title').value = '';
+            document.getElementById('tb-author').value = '';
+            document.getElementById('tb-imgUrl').value = '';
         };
 
-        window.editSelectedArtwork = function() {
+        window.deleteArtwork = function() {
             if(!STATE.selectedArtwork) return;
             const idx = STATE.galleryData.artworks.findIndex(a => a.id === STATE.selectedArtwork);
-            if(idx === -1) return;
-            
-            const art = STATE.galleryData.artworks[idx];
-            const newTitle = prompt("Nuevo Título:", art.title);
-            if(newTitle !== null) art.title = newTitle;
-            
-            // Optionally could edit description, move, or delete...
-            // Trigger rebuild
-            buildArtworks();
+            if(idx !== -1) {
+                STATE.galleryData.artworks.splice(idx, 1);
+                buildArtworks();
+            }
+            STATE.selectedArtwork = null;
+            document.getElementById('btn-delete').disabled = true;
+            document.getElementById('tb-title').value = '';
+            document.getElementById('tb-author').value = '';
+            document.getElementById('tb-imgUrl').value = '';
         };
 
         window.addEventListener('resize', onWindowResize, false);
