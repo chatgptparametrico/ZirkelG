@@ -194,20 +194,19 @@
 
         const STATE = {
             galleryData: {
-                // Layout 1=Wall, 0=Air. 
-                // A rigid orthogonal maze.
+                // Layout 1=Wall, 0=Air, 2=Exhibition Room (Air with ceiling lights and benches)
                 grid: [
-                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                    [1,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
-                    [1,0,1,0,1,0,1,1,1,0,1,0,1,0,1],
-                    [1,0,1,0,0,0,1,0,1,0,0,0,1,0,1],
-                    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
-                    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                    [1,1,1,1,1,0,1,1,1,0,1,1,1,1,1],
-                    [1,0,0,0,1,0,1,0,1,0,1,0,0,0,1],
-                    [1,0,1,0,1,0,0,0,0,0,1,0,1,0,1],
-                    [1,0,0,0,1,1,1,1,1,1,1,0,0,0,1],
-                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,0,0,0,1,0,0,0,0,0,1,2,2,2,2,2,1],
+                    [1,0,1,0,1,0,1,1,1,0,1,2,2,2,2,2,1],
+                    [1,0,1,0,0,0,1,0,1,0,0,2,2,2,2,2,1],
+                    [1,0,1,1,1,1,1,0,1,1,1,2,2,2,2,2,1],
+                    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                    [1,1,1,1,1,0,1,2,2,2,2,2,1,1,1,0,1],
+                    [1,0,0,0,1,0,1,2,2,2,2,2,0,0,1,0,1],
+                    [1,0,1,0,1,0,1,2,2,2,2,2,1,0,1,0,1],
+                    [1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
                 ],
                 artworks: [] // Array of metadata and grid coordinates attached to walls
             },
@@ -239,8 +238,8 @@
         // ==========================================
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 0, 30);
+        scene.background = new THREE.Color(0xf5f5f5);
+        scene.fog = new THREE.Fog(0xf5f5f5, 10, 40);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
         
@@ -249,16 +248,16 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Lighting - Much stronger global illumination to see the dark walls
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // Lighting - Bright clean gallery illumination
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
         
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 0.8);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
         
-        // Attached to player to light up corridors dynamically
-        const pointLight = new THREE.PointLight(0xffffff, 1.0, 20);
+        // Attached to player to light up artworks locally
+        const pointLight = new THREE.PointLight(0xffffff, 0.5, 12);
         camera.add(pointLight);
         scene.add(camera); // Camera must be in scene for attached lights
 
@@ -283,15 +282,15 @@
         // MAP GENERATION
         // ==========================================
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x222222,
-            roughness: 0.9,
-            metalness: 0.1
+            color: 0xf5f5f5, // Off-white clean gallery drywall
+            roughness: 0.8,
+            metalness: 0.05
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0x111111,
-            roughness: 0.5,
-            metalness: 0.5
+            color: 0x999999, // Polished concrete floor
+            roughness: 0.3,
+            metalness: 0.1
         });
 
         // Build walls
@@ -317,16 +316,19 @@
             floor.position.set(centerX, 0, centerZ);
             scene.add(floor);
             
-            // Add a subtle grid helper on the floor for the urban vibe
-            const gridHelper = new THREE.GridHelper(Math.max(mapWidth, mapDepth), Math.max(cols, rows) * 2, 0x0088ff, 0x222222);
-            gridHelper.position.set(centerX, 0.01, centerZ);
-            scene.add(gridHelper);
-            
-            const ceil = new THREE.Mesh(floorGeo, new THREE.MeshBasicMaterial({color: 0x020202}));
+            const ceilMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.9});
+            const ceil = new THREE.Mesh(floorGeo, ceilMat);
             ceil.position.copy(floor.position);
             ceil.position.y = CONFIG.wallHeight;
             ceil.rotateX(Math.PI);
             scene.add(ceil);
+
+            // Benches and Light Panels geometries
+            const benchGeo = new THREE.BoxGeometry(2, 0.45, 0.6);
+            const benchMat = new THREE.MeshStandardMaterial({color: 0x443d38, roughness: 0.8}); // brown leather/wood
+            
+            const panelGeo = new THREE.PlaneGeometry(CONFIG.tileSize - 0.5, CONFIG.tileSize - 0.5);
+            const panelMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // Solid glowing white ceiling panel
 
             // Walls
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
@@ -345,6 +347,25 @@
                         mesh.userData.box.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);
                         
                         STATE.meshes.walls.push(mesh);
+                    } else if (grid[z][x] === 2) {
+                        // Light Panels on Ceiling for Exhibition Rooms
+                        const panel = new THREE.Mesh(panelGeo, panelMat);
+                        panel.position.set(x * CONFIG.tileSize, CONFIG.wallHeight - 0.01, z * CONFIG.tileSize);
+                        panel.rotateX(Math.PI / 2); // Face down
+                        scene.add(panel);
+                        
+                        // Add some benches intermittently in the middle of rooms
+                        if (x % 2 !== 0 && z % 2 !== 0) {
+                             const bench = new THREE.Mesh(benchGeo, benchMat);
+                             bench.position.set(x * CONFIG.tileSize, 0.225, z * CONFIG.tileSize);
+                             scene.add(bench);
+                             
+                             // Add collision for bench
+                             bench.geometry.computeBoundingBox();
+                             bench.userData.box = new THREE.Box3();
+                             bench.userData.box.copy(bench.geometry.boundingBox).applyMatrix4(bench.matrixWorld);
+                             STATE.meshes.walls.push(bench);
+                        }
                     }
                 }
             }
@@ -353,12 +374,18 @@
         // ==========================================
         // ARTWORK GENERATION
         // ==========================================
+        const zirkelLogoTex = new THREE.TextureLoader().load('zirkel-logo.png');
+        const zirkelLogoMat = new THREE.MeshBasicMaterial({ map: zirkelLogoTex, transparent: true });
+
         function buildArtworks() {
             STATE.meshes.artworks.forEach(a => scene.remove(a));
             STATE.meshes.artworks = [];
             
             const loader = new THREE.TextureLoader();
             const artGeo = new THREE.PlaneGeometry(2, 3); // 2m x 3m canvas
+            const frameGeo = new THREE.BoxGeometry(2.1, 3.1, 0.05);
+            const frameMat = new THREE.MeshStandardMaterial({color:0x222222, roughness: 0.8});
+            const logoGeo = new THREE.PlaneGeometry(1.2, 0.4); // Assuming ~3:1 aspect ratio logo
             
             STATE.galleryData.artworks.forEach((art, index) => {
                 const tex = loader.load(art.image);
@@ -370,16 +397,19 @@
                 mesh.rotation.set(art.rx, art.ry, art.rz);
                 mesh.userData = { id: art.id, metadata: art };
                 
-                // Add a glowing frame or highlight
-                const frameGeo = new THREE.BoxGeometry(2.2, 3.2, 0.1);
-                const frameMat = new THREE.MeshStandardMaterial({color:0x111111, emissive:0xffffff, emissiveIntensity:0.2});
+                // Add a slightly dark slim frame
                 const frame = new THREE.Mesh(frameGeo, frameMat);
-                frame.position.z = -0.06;
+                frame.position.z = -0.03;
                 mesh.add(frame);
                 
-                // Light
-                const artLight = new THREE.PointLight(0xffffff, 0.5, 4);
-                artLight.position.set(0,0,1);
+                // Add Zirkel logo over the artwork
+                const logo = new THREE.Mesh(logoGeo, zirkelLogoMat);
+                logo.position.set(0, 1.9, 0.01); // 1.9m above the center of the artwork canvas
+                mesh.add(logo);
+                
+                // Light strictly for the painting focus
+                const artLight = new THREE.PointLight(0xffffff, 0.6, 5);
+                artLight.position.set(0, 1, 1);
                 mesh.add(artLight);
 
                 scene.add(mesh);
@@ -396,19 +426,31 @@
         // e.g., grid[1][1] is air
         camera.position.set(1 * CONFIG.tileSize, CONFIG.cameraHeight, 1 * CONFIG.tileSize);
 
-        // Dummy data for testing
+        // Vibrant dummy data for testing the bright aesthetic
         if(STATE.galleryData.artworks.length === 0) {
             STATE.galleryData.artworks.push({
                 id: Date.now().toString(),
-                title: "Ejemplo Paramétrico",
-                description: "Una exploración de geometrías recurrentes.",
-                author: "Sistema",
-                image: "https://picsum.photos/id/1020/400/600",
+                title: "Abstracto Paramétrico I",
+                description: "Una exploración de texturas vibrantes.",
+                author: "Zirkel Studio",
+                image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                 // Grid cell 1,1 facing East
                 x: 1 * CONFIG.tileSize + CONFIG.tileSize/2 - 0.01,
-                y: CONFIG.wallHeight / 2,
+                y: CONFIG.wallHeight / 2 - 0.2,
                 z: 1 * CONFIG.tileSize,
                 rx: 0, ry: -Math.PI/2, rz: 0
+            });
+            STATE.galleryData.artworks.push({
+                id: (Date.now()+1).toString(),
+                title: "Estructuras II",
+                description: "Patrones urbanos en la arquitectura moderna.",
+                author: "Zirkel Studio",
+                image: "https://images.unsplash.com/photo-1574169208507-84376144848b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                // Grid cell 1,1 facing South
+                x: 1 * CONFIG.tileSize,
+                y: CONFIG.wallHeight / 2 - 0.2,
+                z: 1 * CONFIG.tileSize + CONFIG.tileSize/2 - 0.01,
+                rx: 0, ry: Math.PI, rz: 0
             });
             buildArtworks();
         }
