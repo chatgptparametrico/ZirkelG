@@ -3,806 +3,734 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZirkelG - Interactive 3D Gallery</title>
+    <title>ZirkelG - Galería Grid</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap');
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
         
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Outfit', sans-serif;
-            color: #fff;
+        /* HUD Overlay */
+        #hud { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; }
+        
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.5;
+            mix-blend-mode: difference;
         }
 
-        #webgl-container {
+        /* Instructions */
+        #instructions {
             position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1;
-        }
-
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            pointer-events: none; /* Let clicks pass through to canvas */
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 100;
+            pointer-events: auto;
+            cursor: pointer;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.3s;
         }
-
-        header {
-            padding: 2rem;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        p.subtitle {
-            margin: 5px 0 0 0;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            font-weight: 300;
-        }
+        #instructions h1 { font-size: 3rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 5px; }
+        #instructions p { font-size: 1.2rem; color: #aaa; margin: 5px 0; }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 30px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; }
 
         /* Minimap */
         #minimap-container {
             position: absolute;
             bottom: 30px;
             right: 30px;
-            width: 180px;
-            height: 180px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 200px;
+            height: 200px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
-            backdrop-filter: blur(5px);
             overflow: hidden;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
         }
+        #minimap-canvas { width: 100%; height: 100%; }
 
-        #minimap {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Direction HUD (Arrows) */
-        #hud-arrows {
+        /* Artwork Info Panel */
+        #info-panel {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            gap: 200px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: auto;
-        }
-
-        #hud-arrows.visible {
-            opacity: 1;
-        }
-
-        .arrow-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            font-size: 24px;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .arrow-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(255,255,255,0.5);
-        }
-
-        /* Instructions */
-        #instructions {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px 20px;
-            border-radius: 8px;
-            border-left: 3px solid #0ff;
-            font-size: 0.85rem;
-            backdrop-filter: blur(5px);
-            max-width: 250px;
-            line-height: 1.5;
-        }
-
-        /* Artwork Modal */
-        #modal-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-        }
-
-        #modal-overlay.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        #modal-content {
-            background: rgba(20, 20, 20, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(10,10,10,0.9);
+            border: 1px solid #444;
             padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            transform: translateY(20px);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        #modal-overlay.open #modal-content {
-            transform: translateY(0);
-        }
-
-        #modal-img {
-            max-width: 100%;
-            height: auto;
             border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+            z-index: 50;
+            pointer-events: auto;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
+        #info-panel.active { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+        #info-panel h2 { margin: 0 0 10px 0; font-size: 2rem; color: #0df; }
+        #info-panel p { color: #ccc; line-height: 1.6; margin-bottom: 20px; }
+        #info-author { font-style: italic; color: #888; font-size: 0.9rem; }
+        .close-btn { 
+            position: absolute; top: 15px; right: 20px; background: none; border: none; 
+            color: #fff; font-size: 1.5rem; cursor: pointer; opacity: 0.6;
+        }
+        .close-btn:hover { opacity: 1; }
 
-        #modal-title {
-            font-size: 1.5rem;
-            margin: 0 0 10px 0;
-            color: #fff;
-        }
-
-        #modal-artist {
-            color: #0ff;
-            font-weight: 500;
-            margin-bottom: 15px;
-        }
-
-        #modal-desc {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #aaa;
-            margin-bottom: 30px;
-        }
-
-        #modal-close {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 10px 30px;
-            border-radius: 20px;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        #modal-close:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: #fff;
-        }
-        
-        /* Loading Screen */
-        #loader {
+        /* Taskbar */
+        #taskbar {
             position: absolute;
-            top: 0;
+            bottom: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: #050505;
-            z-index: 1000;
+            width: 100vw;
+            background: rgba(20,20,20,0.95);
+            border-top: 1px solid #333;
+            padding: 15px 20px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            transition: opacity 0.8s ease;
+            gap: 15px;
+            z-index: 60;
+            pointer-events: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-sizing: border-box;
         }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top: 3px solid #0ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+        #taskbar.active { transform: translateY(0); }
+        .tb-btn {
+            background: #333; color: white; border: 1px solid #555; padding: 8px 16px;
+            border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s;
         }
-        
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tb-btn:hover { background: #555; }
+        .tb-btn.primary { background: #08f; border-color: #0af; }
+        .tb-btn.primary:hover { background: #0af; }
 
+        /* File Input */
+        #import-input { display: none; }
     </style>
-    <!-- Async script loading via Import Maps for Three.js -->
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    
+    <div id="hud">
+        <div id="crosshair"></div>
+        <div id="minimap-container"><canvas id="minimap-canvas"></canvas></div>
+    </div>
+
+    <div id="instructions">
+        <h1>ZirkelG</h1>
+        <p>Excursión Arquitectónica</p>
+        <p>Haz clic para entrar a la galería</p>
+        <div class="controls-grid">
+            <div>
+                <strong>Movimiento:</strong> W, A, S, D<br>
+                <strong>Mirar:</strong> Mouse<br>
+                <strong>Interactuar:</strong> Clic Izquierdo en obras
+            </div>
+            <div>
+                <strong>Taskbar (Cargar/Guardar):</strong> Tecla H<br>
+                <strong>Salir:</strong> Tecla ESC
+            </div>
+        </div>
+    </div>
+
+    <!-- Artwork Info Panel -->
+    <div id="info-panel">
+        <button class="close-btn" onclick="closeInfoPanel()">×</button>
+        <h2 id="info-title">Título</h2>
+        <p id="info-desc">Descripción de la obra...</p>
+        <div id="info-author">Autor</div>
+    </div>
+
+    <!-- Edit Taskbar -->
+    <div id="taskbar">
+        <span style="font-weight:bold; color:#888;">Gestor de Galería</span>
+        <button class="tb-btn primary" onclick="addNewArtwork()">+ Nueva Obra</button>
+        <button class="tb-btn" onclick="editSelectedArtwork()" id="btn-edit" disabled>Editar Seleccionada</button>
+        <div style="flex-grow:1;"></div>
+        <button class="tb-btn" onclick="exportGallery()">Exportar JSON</button>
+        <button class="tb-btn" onclick="document.getElementById('import-input').click()">Importar JSON</button>
+        <input type="file" id="import-input" accept=".json" onchange="importGallery(event)">
+    </div>
+
+    <!-- Import Map generation logic and ThreeJS -->
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-                "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js"
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>
-</head>
-<body>
-    
-    <div id="loader">
-        <div class="spinner"></div>
-        <div id="loader-text">Generando Geometría...</div>
-    </div>
-
-    <!-- WebGL Canvas -->
-    <div id="webgl-container"></div>
-
-    <!-- UI Overlay -->
-    <div id="ui-layer">
-        <header>
-            <h1>ZirkelG</h1>
-            <p class="subtitle">Excursión Arquitectónica</p>
-        </header>
-
-        <div id="instructions">
-            <strong>Navegación:</strong><br>
-            - Movimiento automático.<br>
-            - Mouse: Mirar a los lados.<br>
-            - Rueda Mouse: Ajustar velocidad.<br>
-            - Nodos: Usa ← / → para girar.<br>
-            - Click en obras para ver info.
-        </div>
-
-        <div id="hud-arrows">
-            <button class="arrow-btn" id="btn-left">←</button>
-            <button class="arrow-btn" id="btn-right">→</button>
-        </div>
-
-        <div id="minimap-container">
-            <canvas id="minimap" width="180" height="180"></canvas>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="modal-overlay">
-        <div id="modal-content">
-            <img id="modal-img" src="" alt="Artwork">
-            <h2 id="modal-title">Título</h2>
-            <div id="modal-artist">Artista</div>
-            <p id="modal-desc">Descripción...</p>
-            <button id="modal-close">Cerrar</button>
-        </div>
-    </div>
 
     <script type="module">
         import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-        import * as TWEEN from '@tweenjs/tween.js';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
         // ==========================================
         // CONFIGURATION & STATE
         // ==========================================
         const CONFIG = {
-            ringRadius: 40,
-            tunnelSize: 6,      // Width/Height of the corridor
-            tubeSegments: 300,  // Curve resolution
-            neonColors: [0x00ffff, 0xff00ff, 0x99ff00, 0xff6600], // Cyan, Magenta, Lime, Orange
-            baseSpeed: 0.0006,
-            minSpeed: 0.0002,
-            maxSpeed: 0.0015
+            tileSize: 5,        // Size of each grid cell (meters)
+            wallHeight: 4,      // Height of the walls
+            cameraHeight: 1.65, // Standard human eye level
+            speed: 5.0,         // Walk speed m/s
+            playerRadius: 0.5   // For wall collisions
         };
 
-        const state = {
-            currentRing: 0,
-            t: 0, // 0 to 1 along current curve
-            speed: CONFIG.baseSpeed,
-            targetSpeed: CONFIG.baseSpeed,
-            isChoosing: false, // At an intersection
-            isPaused: false, // Viewing artwork
-            mouseOffset: { x: 0, y: 0 },
-            artworks: [] // Array of raycastable meshes
+        const STATE = {
+            galleryData: {
+                // Layout 1=Wall, 0=Air. 
+                // A rigid orthogonal maze.
+                grid: [
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,0,0,0,1,0,0,0,0,0,1,0,0,0,1],
+                    [1,0,1,0,1,0,1,1,1,0,1,0,1,0,1],
+                    [1,0,1,0,0,0,1,0,1,0,0,0,1,0,1],
+                    [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+                    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                    [1,1,1,1,1,0,1,1,1,0,1,1,1,1,1],
+                    [1,0,0,0,1,0,1,0,1,0,1,0,0,0,1],
+                    [1,0,1,0,1,0,0,0,0,0,1,0,1,0,1],
+                    [1,0,0,0,1,1,1,1,1,1,1,0,0,0,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+                ],
+                artworks: [] // Array of metadata and grid coordinates attached to walls
+            },
+            
+            // Runtime elements
+            meshes: {
+                walls: [],
+                artworks: []
+            },
+            
+            // Input
+            moveForward: false,
+            moveBackward: false,
+            moveLeft: false,
+            moveRight: false,
+            velocity: new THREE.Vector3(),
+            direction: new THREE.Vector3(),
+            prevTime: performance.now(),
+            
+            // UI
+            selectedArtwork: null,
+            taskbarOpen: false
         };
 
+        Object.assign(window, { STATE, CONFIG }); // Expose for HTML inline handlers
+
         // ==========================================
-        // ENGINE SETUP
+        // INITIALIZATION
         // ==========================================
-        const container = document.getElementById('webgl-container');
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.Fog(0x050505, 0, 30);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit pixel ratio for performance
-        renderer.toneMapping = THREE.ReinhardToneMapping;
-        renderer.toneMappingExposure = 1.5;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050505, 0.015);
-
-        const camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 200);
-        // We use a dummy object to handle the base rail movement, 
-        // and attach the camera to it to handle the mouse offset look independently
-        const cameraRig = new THREE.Group();
-        cameraRig.add(camera);
-        scene.add(cameraRig);
-
-        // Post-processing (Bloom)
-        const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 2.0, 0.4, 0.1);
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-
-        // Texture Loading manager
-        const textureLoader = new THREE.TextureLoader();
+        // Lighting - Much stronger global illumination to see the dark walls
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
         
-        // Fix: Use a simple material without textures first to verify geometry visibility
-        const concreteMaterial = new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a,
-            roughness: 0.9,
-            metalness: 0.1,
-            side: THREE.BackSide 
-        });
-
-        // ==========================================
-        // GEOMETRY GENERATION (4 RINGS)
-        // ==========================================
-        const rings = [];
-        const intersections = []; // { ringA, ringB, tA, tB, position }
-        
-        // Create 4 overlapping circles
-        // Center of layout is 0,0,0. Rings are at NE, NW, SE, SW.
-        const offset = CONFIG.ringRadius * 0.8; // Distance from center
-        const centers = [
-            new THREE.Vector3(offset, 0, offset),   // Ring 0 (Cyan) - Top Right
-            new THREE.Vector3(-offset, 0, offset),  // Ring 1 (Magenta) - Top Left
-            new THREE.Vector3(-offset, 0, -offset), // Ring 2 (Lime) - Bot Left
-            new THREE.Vector3(offset, 0, -offset)   // Ring 3 (Orange) - Bot Right
-        ];
-
-        // Generate curves
-        for(let i=0; i<4; i++) {
-            const points = [];
-            const segments = 32;
-            for(let j=0; j<segments; j++) {
-                const angle = (j / segments) * Math.PI * 2;
-                points.push(new THREE.Vector3(
-                    centers[i].x + Math.cos(angle) * CONFIG.ringRadius,
-                    0,
-                    centers[i].z + Math.sin(angle) * CONFIG.ringRadius
-                ));
-            }
-            // Close the curve
-            const curve = new THREE.CatmullRomCurve3(points);
-            curve.closed = true;
-            rings.push(curve);
-        }
-
-        // Hardcode intersections where the rings roughly touch
-        // Ring 0 touches Ring 1 (West), Ring 3 (South)
-        // Ring 1 touches Ring 0 (East), Ring 2 (South)
-        // Ring 2 touches Ring 1 (North), Ring 3 (East)
-        // Ring 3 touches Ring 2 (West), Ring 0 (North)
-        
-        // Helper to find closest point roughly
-        function findIntersection(rA, rB, approximateAngleA) {
-            // Find t value on rA that is closest to angle
-            const tA = (approximateAngleA / (Math.PI * 2) + 1) % 1;
-            const posA = rings[rA].getPointAt(tA);
-            
-            // Find closest t on rB to posA
-            let minDist = Infinity;
-            let bestTb = 0;
-            for(let i=0; i<=100; i++) {
-                const t = i/100;
-                const p = rings[rB].getPointAt(t);
-                const d = p.distanceToSquared(posA);
-                if(d < minDist) {
-                    minDist = d;
-                    bestTb = t;
-                }
-            }
-            
-            return { ringA: rA, ringB: rB, tA: tA, tB: bestTb, position: posA };
-        }
-
-        // Define intersection nodes
-        intersections.push(findIntersection(0, 1, Math.PI));        // 0(W) <-> 1(E)
-        intersections.push(findIntersection(0, 3, Math.PI * 1.5));  // 0(S) <-> 3(N)
-        intersections.push(findIntersection(1, 2, Math.PI * 1.5));  // 1(S) <-> 2(N)
-        intersections.push(findIntersection(2, 3, 0));              // 2(E) <-> 3(W)
-
-        // Generate Corridor Meshes
-        const mainGroup = new THREE.Group();
-        scene.add(mainGroup);
-        
-        rings.forEach((curve, index) => {
-            const color = CONFIG.neonColors[index];
-            
-            // TubeGeometry: curve, tubularSegments, radius, radialSegments, closed
-            const tubeGeo = new THREE.TubeGeometry(curve, CONFIG.tubeSegments, CONFIG.tunnelSize / 2, 4, true);
-            
-            // Actually, we can just use 4 sides. The bottom will be a V shape, which is cool and futuristic.
-            
-            tubeGeo.computeBoundingBox();
-            console.log(`Ring ${index} Tube Vertices:`, tubeGeo.attributes.position.count);
-            console.log(`Ring ${index} Bounding Box:`, tubeGeo.boundingBox);
-            
-            const tubeMesh = new THREE.Mesh(tubeGeo, concreteMaterial);
-            mainGroup.add(tubeMesh);
-            
-            // Emissive wireframes for HelloRun glow
-            const edgesGeo = new THREE.WireframeGeometry(tubeGeo);
-            const lineMat = new THREE.LineBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.8
-            });
-            const lineMesh = new THREE.LineSegments(edgesGeo, lineMat);
-            mainGroup.add(lineMesh);
-            
-            // Place PointLights along the curve to illuminate the texture
-            for(let i=0; i<8; i++) {
-                const t = i / 8;
-                const pos = curve.getPointAt(t);
-                const light = new THREE.PointLight(color, 2.0, 50);
-                light.position.copy(pos);
-                mainGroup.add(light);
-            }
-        });
-        
-        // Add HemisphereLight to reveal the concrete texture
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x555555, 1.0);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+        hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
         
-        // Add minimal ambient light
-        scene.add(new THREE.AmbientLight(0xffffff, 1.5)); // Boosted for debug visibility
+        // Attached to player to light up corridors dynamically
+        const pointLight = new THREE.PointLight(0xffffff, 1.0, 20);
+        camera.add(pointLight);
+        scene.add(camera); // Camera must be in scene for attached lights
 
-        // ==========================================
-        // ARTWORK PLACEMENT
-        // ==========================================
-        const artworkGeo = new THREE.PlaneGeometry(3, 4);
-        const artImages = [
-            'https://picsum.photos/id/1015/600/800',
-            'https://picsum.photos/id/1018/600/800',
-            'https://picsum.photos/id/1025/600/800',
-            'https://picsum.photos/id/1035/600/800',
-            'https://picsum.photos/id/1040/600/800',
-            'https://picsum.photos/id/1050/600/800',
-            'https://picsum.photos/id/1060/600/800',
-            'https://picsum.photos/id/1070/600/800'
-        ];
-
-        let artIndex = 0;
-        rings.forEach((curve, rIndex) => {
-            // Place 3 artworks per ring
-            for(let i=0; i<3; i++) {
-                const t = (i + 0.5) / 3;
-                const pos = curve.getPointAt(t);
-                const tangent = curve.getTangentAt(t).normalize();
-                
-                // Offset sideways (to the wall)
-                const right = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0,1,0)).normalize();
-                const wallOffset = CONFIG.tunnelSize / 2 - 0.1;
-                
-                // Which side? alternating
-                const side = (artIndex % 2 === 0) ? 1 : -1;
-                pos.add(right.clone().multiplyScalar(wallOffset * side));
-                
-                // Load Texture
-                const src = artImages[artIndex % artImages.length];
-                const tex = textureLoader.load(src);
-                const mat = new THREE.MeshBasicMaterial({ map: tex });
-                
-                const frame = new THREE.Mesh(artworkGeo, mat);
-                frame.position.copy(pos);
-                
-                // Rotate to face inward
-                const lookQuat = new THREE.Quaternion().setFromUnitVectors(
-                    new THREE.Vector3(0,0,1), 
-                    right.clone().multiplyScalar(-side)
-                );
-                frame.quaternion.copy(lookQuat);
-                
-                // Add glowing frame
-                const borderGeo = new THREE.BoxGeometry(3.2, 4.2, 0.1);
-                const borderMat = new THREE.MeshStandardMaterial({
-                    color: 0x000000,
-                    emissive: CONFIG.neonColors[rIndex],
-                    emissiveIntensity: 1.0
-                });
-                const border = new THREE.Mesh(borderGeo, borderMat);
-                border.position.z = -0.06;
-                frame.add(border);
-                
-                // Metadata
-                frame.userData = {
-                    title: `Obra #${artIndex + 1}`,
-                    artist: `Artista Desconocido`,
-                    desc: `Visualización paramétrica generada procedimentalmente en el sector ${rIndex}. Muestra la interacción de la luz en entornos geométricos.`,
-                    src: src
-                };
-                
-                mainGroup.add(frame);
-                state.artworks.push(frame);
-                artIndex++;
+        // Controls
+        const controls = new PointerLockControls(camera, document.body);
+        
+        const blocker = document.getElementById('instructions');
+        blocker.addEventListener('click', () => {
+            if(!STATE.taskbarOpen) controls.lock();
+        });
+        controls.addEventListener('lock', () => {
+            blocker.style.display = 'none';
+        });
+        controls.addEventListener('unlock', () => {
+            if(!STATE.taskbarOpen) {
+                blocker.style.display = 'flex';
+                closeInfoPanel();
             }
         });
 
-        // Hide loader
-        document.getElementById('loader').style.opacity = '0';
-        setTimeout(() => document.getElementById('loader').style.display = 'none', 800);
-
         // ==========================================
-        // INPUT CONTROLS
+        // MAP GENERATION
         // ==========================================
+        const wallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.9,
+            metalness: 0.1
+        });
         
-        // Mouse look offset
-        document.addEventListener('mousemove', (e) => {
-            if(state.isPaused) return;
-            // Normalize -1 to 1
-            state.mouseOffset.x = (e.clientX / window.innerWidth) * 2 - 1;
-            state.mouseOffset.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            roughness: 0.5,
+            metalness: 0.5
         });
 
-        // Scroll speed
-        document.addEventListener('wheel', (e) => {
-            if(state.isPaused || state.isChoosing) return;
-            state.targetSpeed -= e.deltaY * 0.00001;
-            state.targetSpeed = Math.max(CONFIG.minSpeed, Math.min(CONFIG.maxSpeed, state.targetSpeed));
+        // Build walls
+        function buildGrid() {
+            // Clean old
+            STATE.meshes.walls.forEach(w => scene.remove(w));
+            STATE.meshes.walls = [];
+            
+            const grid = STATE.galleryData.grid;
+            const rows = grid.length;
+            const cols = grid[0].length;
+            
+            // Floor & Ceiling (using planes to cover the whole grid)
+            const mapWidth = cols * CONFIG.tileSize;
+            const mapDepth = rows * CONFIG.tileSize;
+            
+            const floorGeo = new THREE.PlaneGeometry(mapWidth, mapDepth);
+            floorGeo.rotateX(-Math.PI / 2);
+            const floor = new THREE.Mesh(floorGeo, floorMaterial);
+            // Center the floor under the grid
+            const centerX = (cols * CONFIG.tileSize)/2 - CONFIG.tileSize/2;
+            const centerZ = (rows * CONFIG.tileSize)/2 - CONFIG.tileSize/2;
+            floor.position.set(centerX, 0, centerZ);
+            scene.add(floor);
+            
+            // Add a subtle grid helper on the floor for the urban vibe
+            const gridHelper = new THREE.GridHelper(Math.max(mapWidth, mapDepth), Math.max(cols, rows) * 2, 0x0088ff, 0x222222);
+            gridHelper.position.set(centerX, 0.01, centerZ);
+            scene.add(gridHelper);
+            
+            const ceil = new THREE.Mesh(floorGeo, new THREE.MeshBasicMaterial({color: 0x020202}));
+            ceil.position.copy(floor.position);
+            ceil.position.y = CONFIG.wallHeight;
+            ceil.rotateX(Math.PI);
+            scene.add(ceil);
+
+            // Walls
+            const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
+            
+            for(let z=0; z<rows; z++) {
+                for(let x=0; x<cols; x++) {
+                    if(grid[z][x] === 1) {
+                        const mesh = new THREE.Mesh(wallGeo, wallMaterial);
+                        // Position centers
+                        mesh.position.set(x * CONFIG.tileSize, CONFIG.wallHeight/2, z * CONFIG.tileSize);
+                        scene.add(mesh);
+                        
+                        // We store the bounding box for collision detection
+                        mesh.geometry.computeBoundingBox();
+                        mesh.userData.box = new THREE.Box3();
+                        mesh.userData.box.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld);
+                        
+                        STATE.meshes.walls.push(mesh);
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // ARTWORK GENERATION
+        // ==========================================
+        function buildArtworks() {
+            STATE.meshes.artworks.forEach(a => scene.remove(a));
+            STATE.meshes.artworks = [];
+            
+            const loader = new THREE.TextureLoader();
+            const artGeo = new THREE.PlaneGeometry(2, 3); // 2m x 3m canvas
+            
+            STATE.galleryData.artworks.forEach((art, index) => {
+                const tex = loader.load(art.image);
+                const mat = new THREE.MeshBasicMaterial({ map: tex });
+                const mesh = new THREE.Mesh(artGeo, mat);
+                
+                // Position based on data
+                mesh.position.set(art.x, art.y, art.z);
+                mesh.rotation.set(art.rx, art.ry, art.rz);
+                mesh.userData = { id: art.id, metadata: art };
+                
+                // Add a glowing frame or highlight
+                const frameGeo = new THREE.BoxGeometry(2.2, 3.2, 0.1);
+                const frameMat = new THREE.MeshStandardMaterial({color:0x111111, emissive:0xffffff, emissiveIntensity:0.2});
+                const frame = new THREE.Mesh(frameGeo, frameMat);
+                frame.position.z = -0.06;
+                mesh.add(frame);
+                
+                // Light
+                const artLight = new THREE.PointLight(0xffffff, 0.5, 4);
+                artLight.position.set(0,0,1);
+                mesh.add(artLight);
+
+                scene.add(mesh);
+                STATE.meshes.artworks.push(mesh);
+            });
+        }
+
+        // ==========================================
+        // STARTUP
+        // ==========================================
+        buildGrid();
+        
+        // Spawn Player physically in the middle of a corridor 
+        // e.g., grid[1][1] is air
+        camera.position.set(1 * CONFIG.tileSize, CONFIG.cameraHeight, 1 * CONFIG.tileSize);
+
+        // Dummy data for testing
+        if(STATE.galleryData.artworks.length === 0) {
+            STATE.galleryData.artworks.push({
+                id: Date.now().toString(),
+                title: "Ejemplo Paramétrico",
+                description: "Una exploración de geometrías recurrentes.",
+                author: "Sistema",
+                image: "https://picsum.photos/id/1020/400/600",
+                // Grid cell 1,1 facing East
+                x: 1 * CONFIG.tileSize + CONFIG.tileSize/2 - 0.01,
+                y: CONFIG.wallHeight / 2,
+                z: 1 * CONFIG.tileSize,
+                rx: 0, ry: -Math.PI/2, rz: 0
+            });
+            buildArtworks();
+        }
+
+        // ==========================================
+        // INPUT & MOVEMENT
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            // Taskbar Toggle
+            if(e.code === 'KeyH') {
+                STATE.taskbarOpen = !STATE.taskbarOpen;
+                const tb = document.getElementById('taskbar');
+                if(STATE.taskbarOpen) {
+                    controls.unlock();
+                    tb.classList.add('active');
+                } else {
+                    tb.classList.remove('active');
+                    blocker.style.display = 'flex';
+                }
+                return;
+            }
+            if(STATE.taskbarOpen || document.getElementById('info-panel').classList.contains('active')) return;
+
+            switch(e.code) {
+                case 'ArrowUp':
+                case 'KeyW': STATE.moveForward = true; break;
+                case 'ArrowLeft':
+                case 'KeyA': STATE.moveLeft = true; break;
+                case 'ArrowDown':
+                case 'KeyS': STATE.moveBackward = true; break;
+                case 'ArrowRight':
+                case 'KeyD': STATE.moveRight = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch(e.code) {
+                case 'ArrowUp':
+                case 'KeyW': STATE.moveForward = false; break;
+                case 'ArrowLeft':
+                case 'KeyA': STATE.moveLeft = false; break;
+                case 'ArrowDown':
+                case 'KeyS': STATE.moveBackward = false; break;
+                case 'ArrowRight':
+                case 'KeyD': STATE.moveRight = false; break;
+            }
         });
 
         // ==========================================
         // RAYCASTING (Artworks)
         // ==========================================
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        
-        document.addEventListener('click', (e) => {
-            // Ignore if clicking UI
-            if(e.target.tagName === 'BUTTON' || state.isChoosing) return;
-
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(state.artworks);
-
-            if (intersects.length > 0) {
-                const art = intersects[0].object;
-                openModal(art.userData);
+        document.addEventListener('mousedown', (e) => {
+            if(!controls.isLocked) return;
+            // Raycast strictly forward
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+            const intersects = raycaster.intersectObjects(STATE.meshes.artworks, false);
+            
+            if(intersects.length > 0 && intersects[0].distance < 4) {
+                const art = intersects[0].object.userData.metadata;
+                
+                document.getElementById('info-title').innerText = art.title;
+                document.getElementById('info-desc').innerText = art.description;
+                document.getElementById('info-author').innerText = art.author || 'Autor desconocido';
+                
+                document.getElementById('info-panel').classList.add('active');
+                
+                // Auto unlock to allow cursor editing if needed
+                controls.unlock();
+                
+                // Select for taskbar edits
+                STATE.selectedArtwork = art.id;
+                document.getElementById('btn-edit').disabled = false;
+            } else {
+                STATE.selectedArtwork = null;
+                document.getElementById('btn-edit').disabled = true;
             }
         });
 
-        const modalLayer = document.getElementById('modal-overlay');
-        const modalImg = document.getElementById('modal-img');
-        const modalTitle = document.getElementById('modal-title');
-        const modalArtist = document.getElementById('modal-artist');
-        const modalDesc = document.getElementById('modal-desc');
-        const modalClose = document.getElementById('modal-close');
-
-        function openModal(data) {
-            state.isPaused = true;
-            modalImg.src = data.src;
-            modalTitle.innerText = data.title;
-            modalArtist.innerText = data.artist;
-            modalDesc.innerText = data.desc;
-            modalLayer.classList.add('open');
-            
-            // Tween camera to look straight ahead temporarily
-            new TWEEN.Tween(camera.rotation)
-                .to({x: 0, y: 0, z: 0}, 500)
-                .easing(TWEEN.Easing.Quadratic.Out)
-                .start();
+        function closeInfoPanel() {
+            document.getElementById('info-panel').classList.remove('active');
+            if(!STATE.taskbarOpen) controls.lock();
         }
-
-        modalClose.addEventListener('click', () => {
-            modalLayer.classList.remove('open');
-            setTimeout(() => { state.isPaused = false; }, 400);
-        });
+        window.closeInfoPanel = closeInfoPanel;
 
         // ==========================================
-        // NAVIGATION & INTERSECTIONS
+        // COLLISION CHECK
         // ==========================================
-        const hudArrows = document.getElementById('hud-arrows');
-        let currentIntersectionOptions = [];
-
-        function checkIntersections() {
-            if(state.isPaused || state.isChoosing) return;
+        // Predicts movement and checks against grid
+        function checkCollisions(deltaPosition) {
+            const nextPos = camera.position.clone().add(deltaPosition);
             
-            const currentPos = rings[state.currentRing].getPointAt(state.t);
+            // Grid coordinates
+            const gridX = Math.floor((nextPos.x + CONFIG.tileSize/2) / CONFIG.tileSize);
+            const gridZ = Math.floor((nextPos.z + CONFIG.tileSize/2) / CONFIG.tileSize);
             
-            // Check distance to all defined intersections
-            for(let node of intersections) {
-                // Determine if we are on one of the intersecting rings
-                let tTarget = null;
-                let nextRing = null;
-                let nextT = null;
+            const grid = STATE.galleryData.grid;
+            
+            // Check out of bounds or wall (1)
+            // We give a small margin (playerRadius) to prevent clipping through corners
+            const margin = CONFIG.playerRadius;
+            
+            // Construct a mini bounding box for the player's next position
+            const pBox = new THREE.Box3(
+                new THREE.Vector3(nextPos.x - margin, 0, nextPos.z - margin),
+                new THREE.Vector3(nextPos.x + margin, CONFIG.wallHeight, nextPos.z + margin)
+            );
 
-                if(node.ringA === state.currentRing) {
-                    tTarget = node.tA;
-                    nextRing = node.ringB;
-                    nextT = node.tB;
-                } else if(node.ringB === state.currentRing) {
-                    tTarget = node.tB;
-                    nextRing = node.ringA;
-                    nextT = node.tA;
-                }
-
-                if(tTarget !== null) {
-                    // Are we close?
-                    // Handle curve wrapping
-                    let diff = Math.abs(state.t - tTarget);
-                    if(diff > 0.5) diff = 1 - diff; // Wrapped distance
-
-                    if(diff < 0.005) {
-                        // Present choice
-                        state.isChoosing = true;
-                        
-                        // We must figure out relative directions (Left or Right)
-                        // To keep it simple, we just offer Next Ring or Keep Going
-                        currentIntersectionOptions = [
-                            { desc: "Seguir en Anillo", ring: state.currentRing, t: state.t + 0.01 },
-                            { desc: "Cambiar de Anillo", ring: nextRing, t: nextT + 0.01 }
-                        ];
-                        
-                        hudArrows.classList.add('visible');
-                        break;
-                    }
+            // Check against all walls (can be optimized by just checking adjacent grid cells)
+            let collided = false;
+            for(let i=0; i<STATE.meshes.walls.length; i++) {
+                if(pBox.intersectsBox(STATE.meshes.walls[i].userData.box)) {
+                    collided = true;
+                    break;
                 }
             }
+            return !collided;
         }
-
-        document.getElementById('btn-left').addEventListener('click', () => makeChoice(1));  // Change
-        document.getElementById('btn-right').addEventListener('click', () => makeChoice(0)); // Stay
-        
-        window.addEventListener('keydown', (e) => {
-            if(state.isChoosing) {
-                if(e.key === 'ArrowLeft') makeChoice(1);
-                if(e.key === 'ArrowRight') makeChoice(0);
-            }
-            if(e.key === 'Escape' && state.isPaused) {
-                modalClose.click();
-            }
-        });
-
-        function makeChoice(index) {
-            hudArrows.classList.remove('visible');
-            const choice = currentIntersectionOptions[index];
-            
-            // Smoothly jump to new t and ring (or just bump t slightly if staying)
-            state.currentRing = choice.ring;
-            state.t = choice.t % 1;
-            
-            // Wait a sec before unchoosing to prevent immediate re-trigger
-            setTimeout(() => { state.isChoosing = false; }, 500);
-        }
-
 
         // ==========================================
         // MINIMAP
         // ==========================================
-        const minimapCanvas = document.getElementById('minimap');
-        const mapCtx = minimapCanvas.getContext('2d');
-        const mapScale = minimapCanvas.width / (CONFIG.ringRadius * 6); // Fit to canvas
+        const minimapCanvas = document.getElementById('minimap-canvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        minimapCanvas.width = 200;
+        minimapCanvas.height = 200;
 
-        function drawMinimap() {
-            mapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-            const cx = minimapCanvas.width / 2;
-            const cy = minimapCanvas.height / 2;
-
-            // Draw rings
-            rings.forEach((curve, i) => {
-                mapCtx.beginPath();
-                const pts = curve.getPoints(30);
-                pts.forEach((p, idx) => {
-                    const x = cx + p.x * mapScale;
-                    const y = cy + p.z * mapScale;
-                    if(idx === 0) mapCtx.moveTo(x, y);
-                    else mapCtx.lineTo(x, y);
-                });
-                mapCtx.closePath();
-                const col = new THREE.Color(CONFIG.neonColors[i]);
-                mapCtx.strokeStyle = `rgba(${col.r*255}, ${col.g*255}, ${col.b*255}, 0.5)`;
-                mapCtx.lineWidth = state.currentRing === i ? 3 : 1;
-                mapCtx.stroke();
+        function updateMinimap() {
+            minimapCtx.clearRect(0, 0, 200, 200);
+            
+            const grid = STATE.galleryData.grid;
+            const rows = grid.length;
+            const cols = grid[0].length;
+            
+            // Scale and center mapping
+            const mapScale = 200 / Math.max(cols, rows);
+            
+            minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            
+            // Draw walls
+            for(let z=0; z<rows; z++) {
+                for(let x=0; x<cols; x++) {
+                    if(grid[z][x] === 1) {
+                        minimapCtx.fillRect(
+                            (x * mapScale), 
+                            (z * mapScale), 
+                            mapScale + 1, mapScale + 1
+                        );
+                    }
+                }
+            }
+            
+            // Draw artworks
+            minimapCtx.fillStyle = '#0ff';
+            STATE.galleryData.artworks.forEach(art => {
+                const px = (art.x / CONFIG.tileSize + 0.5) * mapScale;
+                const pz = (art.z / CONFIG.tileSize + 0.5) * mapScale;
+                minimapCtx.beginPath();
+                minimapCtx.arc(px, pz, 3, 0, Math.PI*2);
+                minimapCtx.fill();
             });
 
             // Draw player
-            const pPos = rings[state.currentRing].getPointAt(state.t);
-            mapCtx.beginPath();
-            mapCtx.arc(cx + pPos.x * mapScale, cy + pPos.z * mapScale, 4, 0, Math.PI*2);
-            mapCtx.fillStyle = '#fff';
-            mapCtx.fill();
-            mapCtx.shadowBlur = 10;
-            mapCtx.shadowColor = '#fff';
+            const px = (camera.position.x / CONFIG.tileSize + 0.5) * mapScale;
+            const pz = (camera.position.z / CONFIG.tileSize + 0.5) * mapScale;
+            
+            const dir = new THREE.Vector3(0,0,-1);
+            dir.applyQuaternion(camera.quaternion);
+            
+            minimapCtx.fillStyle = '#f00';
+            minimapCtx.beginPath();
+            minimapCtx.arc(px, pz, 4, 0, Math.PI*2);
+            minimapCtx.fill();
+            
+            // View cone
+            minimapCtx.strokeStyle = 'rgba(255,0,0,0.5)';
+            minimapCtx.beginPath();
+            minimapCtx.moveTo(px, pz);
+            minimapCtx.lineTo(px + dir.x * 20, pz + dir.z * 20);
+            minimapCtx.stroke();
         }
 
         // ==========================================
-        // ANIMATION LOOP
+        // RENDER LOOP
         // ==========================================
-        window.addEventListener('resize', () => {
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            if (controls.isLocked === true) {
+                const delta = (time - STATE.prevTime) / 1000;
+
+                // Dampen velocity
+                STATE.velocity.x -= STATE.velocity.x * 10.0 * delta;
+                STATE.velocity.z -= STATE.velocity.z * 10.0 * delta;
+
+                STATE.direction.z = Number(STATE.moveForward) - Number(STATE.moveBackward);
+                STATE.direction.x = Number(STATE.moveRight) - Number(STATE.moveLeft);
+                STATE.direction.normalize();
+
+                if (STATE.moveForward || STATE.moveBackward) STATE.velocity.z -= STATE.direction.z * 40.0 * delta;
+                if (STATE.moveLeft || STATE.moveRight) STATE.velocity.x -= STATE.direction.x * 40.0 * delta;
+
+                // Calculate intended translation
+                const deltaX = -STATE.velocity.x * delta;
+                const deltaZ = -STATE.velocity.z * delta;
+
+                // Move X 
+                controls.moveRight(deltaX);
+                // Check if collided in X
+                if(!checkCollisions(new THREE.Vector3(0,0,0))) {
+                    controls.moveRight(-deltaX); // Revert
+                    STATE.velocity.x = 0;
+                }
+
+                // Move Z
+                controls.moveForward(deltaZ);
+                // Check if collided in Z
+                if(!checkCollisions(new THREE.Vector3(0,0,0))) {
+                    controls.moveForward(-deltaZ); // Revert
+                    STATE.velocity.z = 0;
+                }
+
+                // Fix height just in case
+                camera.position.y = CONFIG.cameraHeight;
+            }
+            
+            STATE.prevTime = time;
+
+            // Minimap Update
+            updateMinimap();
+
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // TASKBAR & JSON LOGIC (window bound)
+        // ==========================================
+        window.exportGallery = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(STATE.galleryData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "zirkelg_gallery.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        };
+
+        window.importGallery = function(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    STATE.galleryData = data;
+                    buildGrid();
+                    buildArtworks();
+                    alert("Galería importada correctamente.");
+                } catch (err) {
+                    alert("Error al leer el archivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        window.addNewArtwork = function() {
+            // Simplified placeholder flow. A real app would use a form.
+            const url = prompt("URL de la imagen:");
+            if(!url) return;
+            const title = prompt("Título:") || "Sin título";
+            const desc = prompt("Descripción:") || "";
+            
+            // Place exactly where the player is currently standing, facing the camera direction
+            const pos = camera.position.clone();
+            // Drop it to halfway up the wall
+            pos.y = CONFIG.wallHeight / 2; 
+            
+            // Move it slightly forward
+            const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+            pos.add(dir.clone().multiplyScalar(2));
+
+            // Create Euler rotation facing the camera
+            const rot = new THREE.Euler(0, camera.rotation.y + Math.PI, 0, 'YXZ');
+
+            const newArt = {
+                id: Date.now().toString(),
+                title: title,
+                description: desc,
+                author: "Usuario",
+                image: url,
+                x: pos.x, y: pos.y, z: pos.z,
+                rx: rot.x, ry: rot.y, rz: rot.z
+            };
+
+            STATE.galleryData.artworks.push(newArt);
+            buildArtworks();
+        };
+
+        window.editSelectedArtwork = function() {
+            if(!STATE.selectedArtwork) return;
+            const idx = STATE.galleryData.artworks.findIndex(a => a.id === STATE.selectedArtwork);
+            if(idx === -1) return;
+            
+            const art = STATE.galleryData.artworks[idx];
+            const newTitle = prompt("Nuevo Título:", art.title);
+            if(newTitle !== null) art.title = newTitle;
+            
+            // Optionally could edit description, move, or delete...
+            // Trigger rebuild
+            buildArtworks();
+        };
+
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        const clock = new THREE.Clock();
-
-        function animate(time) {
-            requestAnimationFrame(animate);
-            TWEEN.update(time);
-
-            if(!state.isPaused && !state.isChoosing) {
-                // Smooth speed interpolation
-                state.speed += (state.targetSpeed - state.speed) * 0.1;
-                
-                // Advance curve
-                state.t += state.speed;
-                if(state.t > 1) state.t -= 1; // loop
-                
-                const currentCurve = rings[state.currentRing];
-                const position = currentCurve.getPointAt(state.t);
-                const tangent = currentCurve.getTangentAt(state.t);
-                
-                // Move rig
-                cameraRig.position.copy(position);
-                
-                // Look ahead
-                const lookAtPos = position.clone().add(tangent);
-                cameraRig.lookAt(lookAtPos);
-
-                // Check for nodes
-                checkIntersections();
-            }
-
-            // Apply mouse offset to camera (not rig)
-            if(!state.isPaused) {
-                const targetRotX = state.mouseOffset.y * 0.3; // Pitch
-                const targetRotY = state.mouseOffset.x * 0.5; // Yaw
-                
-                camera.rotation.x += (targetRotX - camera.rotation.x) * 0.1;
-                camera.rotation.y += (targetRotY - camera.rotation.y) * 0.1;
-            }
-
-            drawMinimap();
-
-            // Render
-            composer.render();
         }
 
+        // Start
         animate();
-
     </script>
 </body>
 </html>
