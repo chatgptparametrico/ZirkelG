@@ -44,7 +44,9 @@
         }
         #instructions h1 { font-size: 3rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 5px; }
         #instructions p { font-size: 1.2rem; color: #aaa; margin: 5px 0; }
-        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 30px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 30px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.3); }
+        .controls-grid div { margin-bottom: 8px; }
+        .controls-grid kbd { background: #333; padding: 2px 8px; border-radius: 4px; font-family: monospace; color: #0ff; margin-right: 10px; border: 1px solid #666; }
 
         /* Minimap */
         #minimap-container {
@@ -154,13 +156,14 @@
         <p>Haz clic para entrar a la galería</p>
         <div class="controls-grid">
             <div>
-                <strong>Movimiento:</strong> W, A, S, D<br>
-                <strong>Mirar:</strong> Mouse<br>
-                <strong>Interactuar:</strong> Clic Izquierdo en obras
+                <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Moverse</div>
+                <div><kbd>Mouse</kbd> Mirar alrededor</div>
+                <div><kbd>Click</kbd> Ver información / Editar obra</div>
             </div>
             <div>
-                <strong>Taskbar (Cargar/Guardar):</strong> Tecla H<br>
-                <strong>Salir:</strong> Tecla ESC
+                <div><kbd>H</kbd> Abrir menú de carga</div>
+                <div><kbd>T</kbd> Activar Auto-Tour</div>
+                <div><kbd>+</kbd><kbd>-</kbd> Velocidad Tour</div>
             </div>
         </div>
     </div>
@@ -704,6 +707,23 @@
                 case 'KeyS': STATE.moveBackward = true; break;
                 case 'ArrowRight':
                 case 'KeyD': STATE.moveRight = true; break;
+                
+                // Auto-Tour Shortcuts
+                case 'KeyT': 
+                    STATE.autoTour = !STATE.autoTour;
+                    document.getElementById('tour-toggle').checked = STATE.autoTour;
+                    if(STATE.autoTour && STATE.tourProgress === 0) STATE.tourProgress = 0.01;
+                    break;
+                case 'Equal': // + key
+                case 'NumpadAdd':
+                    STATE.tourSpeed = Math.min(15, STATE.tourSpeed + 1);
+                    document.getElementById('tour-speed').value = STATE.tourSpeed;
+                    break;
+                case 'Minus': // - key
+                case 'NumpadSubtract':
+                    STATE.tourSpeed = Math.max(1, STATE.tourSpeed - 1);
+                    document.getElementById('tour-speed').value = STATE.tourSpeed;
+                    break;
             }
         });
 
