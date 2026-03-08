@@ -264,7 +264,8 @@
             // Runtime elements
             meshes: {
                 walls: [],
-                artworks: []
+                artworks: [],
+                floatingShapes: []
             },
             
             // Input
@@ -452,6 +453,9 @@
             STATE.meshes.walls.forEach(w => scene.remove(w));
             STATE.meshes.walls = [];
             
+            STATE.meshes.floatingShapes.forEach(s => scene.remove(s));
+            STATE.meshes.floatingShapes = [];
+            
             const grid = STATE.galleryData.grid;
             const rows = grid.length;
             const cols = grid[0].length;
@@ -539,10 +543,6 @@
                         }
                     } else if (grid[z][x] === 0) {
                         // Linear lights on ceiling in corridors (Air cells)
-                        // Don't spawn them everywhere, maybe in a pattern, but the user asked for linear lights in corridors.
-                        // Let's spawn a strip in the middle of every empty corridor space.
-                        // To look directional, we should rotate it if the corridor goes East-West vs North-South.
-                        // For simplicity, a central cross or just a single line oriented North-South.
                         const corridorLight = new THREE.Mesh(linearLightGeo, linearLightMat);
                         corridorLight.position.set(x * CONFIG.tileSize, CONFIG.wallHeight - 0.025, z * CONFIG.tileSize);
                         
@@ -555,6 +555,35 @@
                         }
                         
                         scene.add(corridorLight);
+                        
+                        // Spawn random floating rotating geometric primitives
+                        if (Math.random() < 0.15) { // 15% chance per corridor cell
+                            const shapeType = Math.floor(Math.random() * 3);
+                            let geom;
+                            if (shapeType === 0) geom = new THREE.TetrahedronGeometry(0.4);
+                            else if (shapeType === 1) geom = new THREE.OctahedronGeometry(0.4);
+                            else geom = new THREE.IcosahedronGeometry(0.4, 1); // Looks like a geodesic sphere
+                            
+                            const shapeMat = new THREE.MeshStandardMaterial({
+                                color: 0x000000, 
+                                emissive: Math.random() < 0.5 ? 0x00ffff : 0x00ff00, // Cyan or Green
+                                wireframe: true, 
+                                emissiveIntensity: 1.5
+                            });
+                            
+                            const shapeMesh = new THREE.Mesh(geom, shapeMat);
+                            // Float roughly at eye level
+                            shapeMesh.position.set(
+                                x * CONFIG.tileSize + (Math.random() - 0.5), 
+                                1.5 + (Math.random() * 0.5), 
+                                z * CONFIG.tileSize + (Math.random() - 0.5)
+                            );
+                            // Random initial rotation
+                            shapeMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                            
+                            scene.add(shapeMesh);
+                            STATE.meshes.floatingShapes.push(shapeMesh);
+                        }
                     }
                 }
             }
@@ -978,6 +1007,12 @@
             }
             
             STATE.prevTime = time;
+
+            // Animate floating primitives
+            STATE.meshes.floatingShapes.forEach(shape => {
+                shape.rotation.x += 0.5 * delta;
+                shape.rotation.y += 0.8 * delta;
+            });
 
             // Minimap Update
             updateMinimap();
