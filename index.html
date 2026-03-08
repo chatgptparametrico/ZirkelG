@@ -252,7 +252,7 @@
                     [1,0,1,0,0,0,1,0,1,0,0,2,2,2,2,2,1],
                     [1,0,1,1,1,1,1,0,1,1,1,2,2,2,2,2,1],
                     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                    [1,1,1,1,1,0,1,2,2,2,2,2,1,1,1,0,1],
+                    [1,0,1,0,1,0,1,2,2,2,2,2,1,1,1,0,1],
                     [1,0,0,0,1,0,1,2,2,2,2,2,0,0,1,0,1],
                     [1,0,1,0,1,0,1,2,2,2,2,2,1,0,1,0,1],
                     [1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1],
@@ -607,10 +607,12 @@
 
             // AUTO-TOUR PATH GENERATION (CatmullRom Spline through safe grid cells)
             const t = CONFIG.tileSize;
-            // Predefined smooth loop visiting key spots in the gallery maze:
+            // A comprehensive, perfectly calculated loop that visits all corners, 
+            // passes through exhibition rooms, and exploring the newly opened bottom-left area
             const pathPointsGrid = [
-                [1,1], [5,1], [5,5], [1,5], [1,9], [5,9], [5,15], [9,15], 
-                [9,13], [7,13], [7,12], [8,9], [6,9], [6,11], [5,5], [1,1]
+                [1,1], [5,1], [9,1], [9,3], [7,3], [7,1], [5,1], 
+                [5,7], [1,7], [1,9], [3,9], [3,11], [1,11], [1,15], 
+                [5,15], [9,15], [9,13], [7,13], [7,11], [5,11], [5,7] 
             ];
             const pathPoints3D = pathPointsGrid.map(p => new THREE.Vector3(p[1] * t, CONFIG.cameraHeight, p[0] * t));
             STATE.tourCurve = new THREE.CatmullRomCurve3(pathPoints3D, true, 'catmullrom', 0.5); // Closed loop smooth curve
