@@ -416,21 +416,17 @@
             return tex;
         }
 
-        // Solid black background for walls and floors to avoid transparency overlapping
-        const wallGridTex = createTronGridTexture('#00ffff', '#050510', 1); // Thin Cyan grid
-        wallGridTex.repeat.set(4, 4); // Wider "open" grid (larger squares)
-        
+        // Uniform grid for the entire gallery
         const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 1); // Thin Magenta grid
-        const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 1);  // Thin Green grid
 
         // ==========================================
         // MAP GENERATION
         // ==========================================
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x050510,
-            emissive: 0x00ffff,
-            emissiveMap: wallGridTex,
-            map: wallGridTex,
+            color: 0x000000,
+            emissive: 0xff00ff,
+            emissiveMap: floorGridTex,
+            map: floorGridTex,
             roughness: 0.1,
             metalness: 0.9
         });
@@ -469,11 +465,11 @@
             
             const ceilMat = new THREE.MeshStandardMaterial({
                 color: 0x000000, 
-                emissive: 0x00ff00, 
-                emissiveMap: ceilGridTex, 
-                map: ceilGridTex,
-                roughness: 0.5,
-                metalness: 0.5
+                emissive: 0xff00ff, 
+                emissiveMap: floorGridTex, 
+                map: floorGridTex,
+                roughness: 0.1,
+                metalness: 0.9
             });
             const ceil = new THREE.Mesh(floorGeo, ceilMat);
             ceil.position.copy(floor.position);
