@@ -327,6 +327,15 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000); // TRON Pitch Black
         scene.fog = new THREE.Fog(0x000000, 2, 70); // Dark fade out
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+        
+        const controls = new PointerLockControls(camera, document.body);
         
         // TRON Lighting - Very dark ambient, relying mostly on glowing wireframes
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.15); 
@@ -341,9 +350,6 @@
         camera.add(pointLight);
         scene.add(camera); // Camera must be in scene for attached lights
 
-        // Controls
-        const controls = new PointerLockControls(camera, document.body);
-        
         const blocker = document.getElementById('instructions');
         blocker.addEventListener('click', () => {
             if(!STATE.taskbarOpen) controls.lock();
