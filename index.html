@@ -1357,15 +1357,24 @@
         minimapCanvas.height = 200;
 
         function updateMinimap() {
-            minimapCtx.clearRect(0, 0, 200, 200);
+            if(document.getElementById('minimap').style.display === 'none') return;
             
+            minimapCtx.clearRect(0, 0, 200, 200);
+
             const grid = STATE.galleryData.grid;
             const rows = grid.length;
             const cols = grid[0].length;
             
-            // Scale and center mapping
-            const mapScale = 200 / Math.max(cols, rows);
+            // Fixed scale for a 17x11 grid inside a 200x200 canvas
+            const mapScale = 10; 
             
+            // Calculate centering offsets
+            const mapWidthPx = cols * mapScale;
+            const mapHeightPx = rows * mapScale;
+            const offsetX = (200 - mapWidthPx) / 2;
+            const offsetY = (200 - mapHeightPx) / 2;
+            
+            // Draw grid background
             minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
             
             // Draw walls
@@ -1373,8 +1382,8 @@
                 for(let x=0; x<cols; x++) {
                     if(grid[z][x] === 1) {
                         minimapCtx.fillRect(
-                            (x * mapScale), 
-                            (z * mapScale), 
+                            offsetX + (x * mapScale), 
+                            offsetY + (z * mapScale), 
                             mapScale + 1, mapScale + 1
                         );
                     }
@@ -1384,16 +1393,16 @@
             // Draw artworks
             minimapCtx.fillStyle = '#0ff';
             STATE.galleryData.artworks.forEach(art => {
-                const px = (art.x / CONFIG.tileSize + 0.5) * mapScale;
-                const pz = (art.z / CONFIG.tileSize + 0.5) * mapScale;
+                const px = offsetX + (art.gridX + 0.5) * mapScale; // Use gridX for artworks array structure
+                const pz = offsetY + (art.gridZ + 0.5) * mapScale;
                 minimapCtx.beginPath();
                 minimapCtx.arc(px, pz, 3, 0, Math.PI*2);
                 minimapCtx.fill();
             });
 
             // Draw player
-            const px = (camera.position.x / CONFIG.tileSize + 0.5) * mapScale;
-            const pz = (camera.position.z / CONFIG.tileSize + 0.5) * mapScale;
+            const px = offsetX + (camera.position.x / CONFIG.tileSize + 0.5) * mapScale;
+            const pz = offsetY + (camera.position.z / CONFIG.tileSize + 0.5) * mapScale;
             
             const dir = new THREE.Vector3(0,0,-1);
             dir.applyQuaternion(camera.quaternion);
