@@ -397,9 +397,11 @@
             return tex;
         }
 
-        const wallGridTex = createTronGridTexture('#00ffff', '#050510', 4); // Cyan grid on dark blueish black
-        const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 3); // Magenta grid on pure black
-        const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 2); // Green grid on pure black
+        const wallGridTex = createTronGridTexture('#00ffff', '#050510', 1); // Thinner Cyan grid
+        wallGridTex.repeat.set(12, 12); // Match floor spacing density
+        
+        const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 1); // Thinner Magenta grid
+        const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 1); // Thinner Green grid
 
         // ==========================================
         // MAP GENERATION
@@ -470,14 +472,8 @@
             const linearLightGeo = new THREE.BoxGeometry(0.2, 0.05, CONFIG.tileSize * 0.8);
             const linearLightMat = new THREE.MeshBasicMaterial({color: 0x00ffff});
 
-            // Walls and Architectural details
+            // Walls
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
-            
-            const zocaloGeo = new THREE.BoxGeometry(CONFIG.tileSize + 0.04, 0.15, CONFIG.tileSize + 0.04);
-            const zocaloMat = new THREE.MeshStandardMaterial({color: 0xe0e0e0, roughness: 0.4});
-            
-            const ceilingGapGeo = new THREE.BoxGeometry(CONFIG.tileSize + 0.02, 0.05, CONFIG.tileSize + 0.02);
-            const ceilingGapMat = new THREE.MeshStandardMaterial({color: 0xcccccc}); // Shadow molding gap
 
             for(let z=0; z<rows; z++) {
                 for(let x=0; x<cols; x++) {
@@ -488,14 +484,6 @@
                         const mesh = new THREE.Mesh(wallGeo, wallMaterial);
                         mesh.position.y = CONFIG.wallHeight/2;
                         wallGroup.add(mesh);
-                        
-                        const zocalo = new THREE.Mesh(zocaloGeo, zocaloMat);
-                        zocalo.position.y = 0.075;
-                        wallGroup.add(zocalo);
-
-                        const topGap = new THREE.Mesh(ceilingGapGeo, ceilingGapMat);
-                        topGap.position.y = CONFIG.wallHeight - 0.025;
-                        wallGroup.add(topGap);
 
                         scene.add(wallGroup);
                         
