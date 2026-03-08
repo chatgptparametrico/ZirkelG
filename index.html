@@ -581,9 +581,8 @@
                     video.muted = true;
                     video.playsInline = true;
                     video.autoplay = true;
+                    // DO NOT append to DOM - keeps keyboard focus on the canvas
                     video.play().catch(() => {});
-                    video.style.display = 'none';
-                    document.body.appendChild(video);
                     const videoTex = new THREE.VideoTexture(video);
                     videoTex.minFilter = THREE.LinearFilter;
                     videoTex.magFilter = THREE.LinearFilter;
