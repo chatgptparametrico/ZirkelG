@@ -690,7 +690,7 @@
                     tb.classList.add('active');
                 } else {
                     tb.classList.remove('active');
-                    blocker.style.display = 'flex';
+                    controls.lock(); // Re-enter directly, no grey screen needed
                 }
                 return;
             }
@@ -769,8 +769,7 @@
         function closeTaskbar() {
             STATE.taskbarOpen = false;
             document.getElementById('taskbar').classList.remove('active');
-            // Re-show the pointer lock overlay so the user can click back in
-            document.getElementById('blocker').style.display = 'flex';
+            controls.lock(); // Re-enter pointer lock directly — no grey screen
         }
         window.closeTaskbar = closeTaskbar;
 
