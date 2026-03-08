@@ -413,10 +413,10 @@
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0xcccccc, // Brighter base for the floor reflection
+            color: 0xe0e0e0, // Even brighter base
             map: concreteTex,
-            roughness: 0.20, // Slightly more polished for marble feel
-            metalness: 0.15
+            roughness: 0.05, // Highly polished, almost mirror-like finish
+            metalness: 0.25 // More reflective
         });
 
         // Build walls
