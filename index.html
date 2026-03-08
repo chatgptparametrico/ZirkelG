@@ -902,10 +902,7 @@
             const url = document.getElementById('tb-imgUrl').value;
             const desc = document.getElementById('tb-desc').value || "Nueva instalación en la galería.";
             
-            if(!url && !STATE.selectedArtwork) {
-                alert('Sube una imagen usando el botón "Choose File" para agregar una nueva obra.');
-                return;
-            }
+            // URL is populated automatically by the FileReader when a file is uploaded
 
             if(STATE.selectedArtwork) {
                 // Edit existing
