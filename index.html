@@ -325,9 +325,9 @@
             blocker.style.display = 'none';
         });
         controls.addEventListener('unlock', () => {
-            if(!STATE.taskbarOpen) {
+            const infoPanelActive = document.getElementById('info-panel').classList.contains('active');
+            if(!STATE.taskbarOpen && !infoPanelActive) {
                 blocker.style.display = 'flex';
-                closeInfoPanel();
             }
         });
 
