@@ -181,7 +181,7 @@
         <span style="font-weight:bold; color:#888; font-size: 0.8rem; white-space: nowrap;">GESTOR DE GALERÍA</span>
         <input type="text" id="tb-title" placeholder="Título" class="tb-input">
         <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width:150px;">
-        <input type="text" id="tb-imgUrl" placeholder="URL de Imagen o sube una local 👇" class="tb-input">
+        <input type="hidden" id="tb-imgUrl">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom: 5px;">
             <label style="font-size:0.75rem; color:#aaa;">Sube tu propia obra (.png, .jpg):</label>
             <input type="file" id="tb-file" accept="image/*" style="font-size: 0.75rem; color:#ccc;">
@@ -603,79 +603,6 @@
             const t = CONFIG.tileSize; // 4
             
             STATE.galleryData.artworks = [
-                // Replacement Unsplash Artwork Data (CORS Safe)
-                {
-                    id: "sd_1", title: "Z zirkel cad a158", description: "Esquema conceptual paramétrico.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 1 * t, y: h, z: 1 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0 // Cell(1,1) North Wall
-                },
-                {
-                    id: "sd_2", title: "Z zirkel cad a266", description: "Celosías y sombras proyectadas.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1541888049871-3312c9c7f68c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 3 * t + t/2 - 0.01, y: h, z: 1 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(3,1) East Wall
-                },
-                {
-                    id: "sd_3", title: "Zirkel Comparador CAD a253", description: "Superficies curvas de cristal.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 1 * t - t/2 + 0.01, y: h, z: 2 * t,
-                    rx: 0, ry: Math.PI/2, rz: 0 // Cell(1,2) West Wall
-                },
-                {
-                    id: "sd_4", title: "Zirkel Comparador CAD a250", description: "Geometría sagrada en techos.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 5 * t, y: h, z: 1 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0 // Cell(5,1) North Wall
-                },
-                {
-                    id: "sd_5", title: "Zirkel Viento Rectangular (REV2)", description: "Tensiones de acero.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 9 * t + t/2 - 0.01, y: h, z: 1 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(9,1) East Wall
-                },
-                {
-                    id: "sd_6", title: "Zirkel Grilla Plana (REV2)", description: "Cuadrícula expuesta.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1449844908441-8829872d2607?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 15 * t + t/2 - 0.01, y: h, z: 4 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(15,4) East Wall in exhibition
-                },
-                {
-                    id: "sd_7", title: "Zirkel Viento Edificio", description: "Torre paramétrica torcida.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1482855549413-2a669b6e00aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 10 * t, y: h, z: 2 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0 // Cell(10,2) North Wall
-                },
-                {
-                    id: "sd_8", title: "Zirkel Láminas Libres", description: "Flujo libre y rampas.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1543169865-c9a9ccb24982?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 1 * t, y: h, z: 3 * t + t/2 - 0.01,
-                    rx: 0, ry: Math.PI, rz: 0 // Cell(1,3) South Wall
-                },
-                {
-                    id: "sd_9", title: "Zirkel Estructuras Metálicas", description: "Tubos interconectados.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1524230572899-a752b38b584e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 7 * t + t/2 - 0.01, y: h, z: 7 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(7,7) East Wall
-                },
-                {
-                    id: "sd_10", title: "Zirkel Comparador CAD a246", description: "Domos geodésicos.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1506544777-64cfbea6ab16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 11 * t, y: h, z: 6 * t - t/2 + 0.01,
-                    rx: 0, ry: 0, rz: 0 // Cell(11,6) North Wall in exhibition
-                },
-                {
-                    id: "sd_11", title: "Zirkel Sílex Cad v 243", description: "Cúpula interior minimalista.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1498622205943-26dcbed99cb3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 12 * t, y: h, z: 8 * t + t/2 - 0.01,
-                    rx: 0, ry: Math.PI, rz: 0 // Cell(12,8) South Wall in exhibition
-                },
-                {
-                    id: "sd_12", title: "Zirkel Comparador CAD a243", description: "Techo abovedado de concreto.", author: "jfarezatfau",
-                    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-                    x: 12 * t + t/2 - 0.01, y: h, z: 7 * t,
-                    rx: 0, ry: -Math.PI/2, rz: 0 // Cell(12,7) East Wall in exhibition
-                },
                 // Expansion: Splendid Parametric Arch from Unsplash
                 {
                     id: "unsplash_1", title: "Estructura Modular", description: "Diseño algorítmico y cerramientos curvos.", author: "Arquitectura Paramétrica",
