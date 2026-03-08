@@ -902,8 +902,8 @@
             const url = document.getElementById('tb-imgUrl').value;
             const desc = document.getElementById('tb-desc').value || "Nueva instalación en la galería.";
             
-            if(!url) {
-                alert("La URL de la imagen es obligatoria.");
+            if(!url && !STATE.selectedArtwork) {
+                alert('Sube una imagen usando el botón "Choose File" para agregar una nueva obra.');
                 return;
             }
 
