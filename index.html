@@ -382,14 +382,18 @@
         // ==========================================
         // TRON TEXTURE GENERATION
         // ==========================================
-        function createTronGridTexture(colorStr, backgroundStr = '#000000', lineWidth = 2) {
+        function createTronGridTexture(colorStr, backgroundStr = null, lineWidth = 2) {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
             
-            ctx.fillStyle = backgroundStr;
-            ctx.fillRect(0, 0, 512, 512);
+            if (backgroundStr) {
+                ctx.fillStyle = backgroundStr;
+                ctx.fillRect(0, 0, 512, 512);
+            } else {
+                ctx.clearRect(0, 0, 512, 512); // Fully transparent background
+            }
             
             ctx.strokeStyle = colorStr;
             ctx.lineWidth = lineWidth;
@@ -412,8 +416,9 @@
             return tex;
         }
 
-        const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 1); // Thinner Magenta grid
-        const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 1); // Thinner Green grid
+        // Pass 'null' for background to make the spaces between the grid lines completely transparent
+        const floorGridTex = createTronGridTexture('#ff00ff', null, 2); // Thin Magenta open wireframe
+        const ceilGridTex = createTronGridTexture('#00ff00', null, 2);  // Thin Green open wireframe
 
         // ==========================================
         // MAP GENERATION
@@ -425,7 +430,10 @@
             emissiveMap: floorGridTex,
             map: floorGridTex,
             roughness: 0.1,
-            metalness: 0.9
+            metalness: 0.9,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
@@ -434,7 +442,10 @@
             emissiveMap: floorGridTex,
             map: floorGridTex,
             roughness: 0.1,
-            metalness: 0.9
+            metalness: 0.9,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
         });
 
         // Build walls
@@ -466,7 +477,10 @@
                 emissiveMap: ceilGridTex, 
                 map: ceilGridTex,
                 roughness: 0.5,
-                metalness: 0.5
+                metalness: 0.5,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
             });
             const ceil = new THREE.Mesh(floorGeo, ceilMat);
             ceil.position.copy(floor.position);
