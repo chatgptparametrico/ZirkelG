@@ -184,7 +184,7 @@
         <input type="hidden" id="tb-imgUrl">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom: 5px;">
             <label style="font-size:0.75rem; color:#aaa;">Sube tu propia obra (.png, .jpg):</label>
-            <input type="file" id="tb-file" accept="image/*" style="font-size: 0.75rem; color:#ccc;">
+            <input type="file" id="tb-file" accept="image/*,video/mp4,video/webm,video/ogg,image/gif" style="font-size: 0.75rem; color:#ccc;">
         </div>
         <textarea id="tb-desc" placeholder="Descripción extendida de la obra..." class="tb-input" style="height: 35px; resize: vertical; min-height: 35px; max-height: 150px;"></textarea>
         
@@ -560,8 +560,48 @@
             const logoGeo = new THREE.PlaneGeometry(1.2, 0.4); // Assuming ~3:1 aspect ratio logo
             
             STATE.galleryData.artworks.forEach((art, index) => {
-                const tex = loader.load(art.image);
-                const mat = new THREE.MeshBasicMaterial({ map: tex });
+                let mat;
+                
+                if(art.image && art.image.startsWith('data:video/')) {
+                    // === VIDEO TEXTURE ===
+                    const video = document.createElement('video');
+                    video.src = art.image;
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.autoplay = true;
+                    video.play().catch(() => {});
+                    video.style.display = 'none';
+                    document.body.appendChild(video);
+                    const videoTex = new THREE.VideoTexture(video);
+                    videoTex.minFilter = THREE.LinearFilter;
+                    videoTex.magFilter = THREE.LinearFilter;
+                    mat = new THREE.MeshBasicMaterial({ map: videoTex });
+                    
+                } else if(art.image && art.image.startsWith('data:image/gif')) {
+                    // === ANIMATED GIF via canvas ===
+                    const gifImg = document.createElement('img');
+                    gifImg.src = art.image;
+                    const gifCanvas = document.createElement('canvas');
+                    gifCanvas.width = 400;
+                    gifCanvas.height = 600;
+                    const gifCtx = gifCanvas.getContext('2d');
+                    const gifTex = new THREE.CanvasTexture(gifCanvas);
+                    gifImg.onload = () => {
+                        const drawGif = () => {
+                            gifCtx.drawImage(gifImg, 0, 0, 400, 600);
+                            gifTex.needsUpdate = true;
+                            requestAnimationFrame(drawGif);
+                        };
+                        drawGif();
+                    };
+                    mat = new THREE.MeshBasicMaterial({ map: gifTex });
+                    
+                } else {
+                    // === REGULAR IMAGE (png, jpg, base64) ===
+                    const tex = loader.load(art.image || '');
+                    mat = new THREE.MeshBasicMaterial({ map: tex });
+                }
                 const mesh = new THREE.Mesh(artGeo, mat);
                 
                 // Position based on data
