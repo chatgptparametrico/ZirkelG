@@ -267,11 +267,19 @@
                 tbFile.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if(!file) return;
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        document.getElementById('tb-imgUrl').value = event.target.result; // base64 DataURL
-                    };
-                    reader.readAsDataURL(file);
+                    
+                    if(file.type.startsWith('video/')) {
+                        // Use ObjectURL for videos - much lighter than base64
+                        const objectUrl = URL.createObjectURL(file);
+                        document.getElementById('tb-imgUrl').value = 'objecturl:video:' + objectUrl;
+                    } else {
+                        // Images and GIFs use FileReader base64
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            document.getElementById('tb-imgUrl').value = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 });
             }
         };
@@ -562,10 +570,13 @@
             STATE.galleryData.artworks.forEach((art, index) => {
                 let mat;
                 
-                if(art.image && art.image.startsWith('data:video/')) {
+                if(art.image && (art.image.startsWith('data:video/') || art.image.startsWith('objecturl:video:'))) {
                     // === VIDEO TEXTURE ===
+                    const videoSrc = art.image.startsWith('objecturl:video:')
+                        ? art.image.replace('objecturl:video:', '') // ObjectURL (lightweight)
+                        : art.image; // legacy base64
                     const video = document.createElement('video');
-                    video.src = art.image;
+                    video.src = videoSrc;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
@@ -994,13 +1005,15 @@
             }
             buildArtworks();
             
-            // Clear selection logic so next click on Save makes a *new* artwork until an existing one is selected again
+            // Clear selection and close the taskbar so the user can move again
             STATE.selectedArtwork = null;
             document.getElementById('btn-delete').disabled = true;
             document.getElementById('tb-title').value = '';
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
             document.getElementById('tb-desc').value = '';
+            document.getElementById('tb-file').value = '';
+            closeTaskbar(); // Restore movement immediately after saving
         };
 
         window.deleteArtwork = function() {
