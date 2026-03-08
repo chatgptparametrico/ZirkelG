@@ -161,9 +161,10 @@
                 <div><kbd>Click</kbd> Ver información / Editar obra</div>
             </div>
             <div>
-                <div><kbd>H</kbd> Abrir menú de carga</div>
                 <div><kbd>T</kbd> Activar Auto-Tour</div>
+                <div><kbd>L</kbd> Auto-Mirar (en Tour)</div>
                 <div><kbd>+</kbd><kbd>-</kbd> Velocidad Tour</div>
+                <div><kbd>H</kbd> Abrir menú de carga</div>
             </div>
         </div>
     </div>
@@ -183,10 +184,14 @@
     <div id="tour-controls" style="position:absolute; top:20px; right:20px; z-index:40; display:flex; flex-direction:column; gap:10px; background:rgba(0,5,10,0.8); padding:15px; border:1px solid #0ff; border-radius:8px; backdrop-filter:blur(4px); font-family:monospace; color:#0ff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);">
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
             <input type="checkbox" id="tour-toggle" style="accent-color:#0ff; width:18px; height:18px;">
-            <span style="font-weight:bold; font-size:1.1rem; text-transform:uppercase; letter-spacing:2px;">Auto-Tour</span>
+            <span style="font-weight:bold; font-size:1.1rem; text-transform:uppercase; letter-spacing:2px;">Auto-Tour (T)</span>
         </label>
-        <div style="display:flex; flex-direction:column; gap:5px;">
-            <span style="font-size:0.8rem; opacity:0.8;">VELOCIDAD</span>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin-top:-5px;">
+            <input type="checkbox" id="look-toggle" style="accent-color:#0f0; width:14px; height:14px;">
+            <span style="font-size:0.8rem; text-transform:uppercase; opacity:0.8;">Auto-Mirar (L)</span>
+        </label>
+        <div style="display:flex; flex-direction:column; gap:5px; margin-top:5px;">
+            <span style="font-size:0.8rem; opacity:0.8;">VELOCIDAD (+/-)</span>
             <input type="range" id="tour-speed" min="1" max="15" value="4" style="accent-color:#f0f;">
         </div>
     </div>
@@ -277,6 +282,7 @@
             
             // Auto-Tour
             autoTour: false,
+            autoLook: false,
             tourSpeed: 4.0,
             tourProgress: 0,
             tourCurve: null
@@ -311,6 +317,12 @@
                     if(STATE.autoTour && STATE.tourProgress === 0) {
                         STATE.tourProgress = 0.01; // Kickstart from beginning if new
                     }
+                });
+            }
+            const btnLook = document.getElementById('look-toggle');
+            if(btnLook) {
+                btnLook.addEventListener('change', (e) => {
+                    STATE.autoLook = e.target.checked;
                 });
             }
             const speedSlider = document.getElementById('tour-speed');
@@ -400,20 +412,18 @@
             return tex;
         }
 
-        const wallGridTex = createTronGridTexture('#00ffff', '#050510', 1); // Thinner Cyan grid
-        wallGridTex.repeat.set(12, 12); // Match floor spacing density
-        
         const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 1); // Thinner Magenta grid
         const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 1); // Thinner Green grid
 
         // ==========================================
         // MAP GENERATION
         // ==========================================
+        // Walls now use the exact same grid configuration as the floor
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x050510,
-            emissive: 0x00ffff,
-            emissiveMap: wallGridTex,
-            map: wallGridTex,
+            color: 0x000000,
+            emissive: 0xff00ff,
+            emissiveMap: floorGridTex,
+            map: floorGridTex,
             roughness: 0.1,
             metalness: 0.9
         });
@@ -714,6 +724,10 @@
                     document.getElementById('tour-toggle').checked = STATE.autoTour;
                     if(STATE.autoTour && STATE.tourProgress === 0) STATE.tourProgress = 0.01;
                     break;
+                case 'KeyL':
+                    STATE.autoLook = !STATE.autoLook;
+                    document.getElementById('look-toggle').checked = STATE.autoLook;
+                    break;
                 case 'Equal': // + key
                 case 'NumpadAdd':
                     STATE.tourSpeed = Math.min(15, STATE.tourSpeed + 1);
@@ -906,8 +920,16 @@
                 if(STATE.tourProgress > 1) STATE.tourProgress -= 1;
                 
                 const nextPos = STATE.tourCurve.getPointAt(STATE.tourProgress);
-                // Assign position but leave rotation alone so PointerLockControls can still look around
                 camera.position.copy(nextPos);
+                
+                // AUTO-LOOK LOGIC
+                if (STATE.autoLook) {
+                    // Look slightly ahead on the curve to steer gaze
+                    let lookAheadProgress = STATE.tourProgress + (0.05 * STATE.tourSpeed / 10);
+                    if(lookAheadProgress > 1) lookAheadProgress -= 1;
+                    const lookTgt = STATE.tourCurve.getPointAt(lookAheadProgress);
+                    camera.lookAt(lookTgt);
+                }
                 
             } else if(controls.isLocked && !document.getElementById('info-panel').classList.contains('active')) {
                 // MANUAL MOVEMENT LOGIC
