@@ -194,6 +194,7 @@
         <button class="tb-btn" onclick="exportGallery()">Exportar JSON</button>
         <button class="tb-btn" onclick="document.getElementById('import-input').click()">Importar JSON</button>
         <input type="file" id="import-input" accept=".json" onchange="importGallery(event)">
+        <button class="tb-btn" onclick="closeTaskbar()" style="background:#444; border:1px solid #888; margin-left:8px; font-size:1rem; padding: 4px 12px;">✕ Cerrar</button>
     </div>
 
     <!-- Import Map generation logic and ThreeJS -->
@@ -715,6 +716,14 @@
         }
         window.closeInfoPanel = closeInfoPanel;
 
+        function closeTaskbar() {
+            STATE.taskbarOpen = false;
+            document.getElementById('taskbar').classList.remove('active');
+            // Re-show the pointer lock overlay so the user can click back in
+            document.getElementById('blocker').style.display = 'flex';
+        }
+        window.closeTaskbar = closeTaskbar;
+
         // ==========================================
         // COLLISION CHECK
         // ==========================================
@@ -956,6 +965,7 @@
 
         window.deleteArtwork = function() {
             if(!STATE.selectedArtwork) return;
+            if(!confirm('¿Eliminar esta obra de la galería?')) return;
             const idx = STATE.galleryData.artworks.findIndex(a => a.id === STATE.selectedArtwork);
             if(idx !== -1) {
                 STATE.galleryData.artworks.splice(idx, 1);
@@ -967,6 +977,7 @@
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
             document.getElementById('tb-desc').value = '';
+            closeTaskbar(); // Close the menu after deletion
         };
 
         window.addEventListener('resize', onWindowResize, false);
