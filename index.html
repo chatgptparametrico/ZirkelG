@@ -416,24 +416,23 @@
             return tex;
         }
 
-        // Pass 'null' for background to make the spaces between the grid lines completely transparent
-        const floorGridTex = createTronGridTexture('#ff00ff', null, 2); // Thin Magenta open wireframe
-        const ceilGridTex = createTronGridTexture('#00ff00', null, 2);  // Thin Green open wireframe
+        // Solid black background for walls and floors to avoid transparency overlapping
+        const wallGridTex = createTronGridTexture('#00ffff', '#050510', 1); // Thin Cyan grid
+        wallGridTex.repeat.set(4, 4); // Wider "open" grid (larger squares)
+        
+        const floorGridTex = createTronGridTexture('#ff00ff', '#000000', 1); // Thin Magenta grid
+        const ceilGridTex = createTronGridTexture('#00ff00', '#000000', 1);  // Thin Green grid
 
         // ==========================================
         // MAP GENERATION
         // ==========================================
-        // Walls now use the exact same grid configuration as the floor
         const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x000000,
-            emissive: 0xff00ff,
-            emissiveMap: floorGridTex,
-            map: floorGridTex,
+            color: 0x050510,
+            emissive: 0x00ffff,
+            emissiveMap: wallGridTex,
+            map: wallGridTex,
             roughness: 0.1,
-            metalness: 0.9,
-            transparent: true,
-            opacity: 0.8,
-            side: THREE.DoubleSide
+            metalness: 0.9
         });
         
         const floorMaterial = new THREE.MeshStandardMaterial({
@@ -442,10 +441,7 @@
             emissiveMap: floorGridTex,
             map: floorGridTex,
             roughness: 0.1,
-            metalness: 0.9,
-            transparent: true,
-            opacity: 0.8,
-            side: THREE.DoubleSide
+            metalness: 0.9
         });
 
         // Build walls
@@ -477,10 +473,7 @@
                 emissiveMap: ceilGridTex, 
                 map: ceilGridTex,
                 roughness: 0.5,
-                metalness: 0.5,
-                transparent: true,
-                opacity: 0.8,
-                side: THREE.DoubleSide
+                metalness: 0.5
             });
             const ceil = new THREE.Mesh(floorGeo, ceilMat);
             ceil.position.copy(floor.position);
