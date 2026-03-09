@@ -1446,7 +1446,11 @@
                     
                 } else {
                     // === REGULAR IMAGE (png, jpg, base64) ===
-                    const tex = loader.load(art.image || '');
+                    let imgUrl = art.image || '';
+                    if(imgUrl.includes('wikimedia.org')) {
+                        imgUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(imgUrl);
+                    }
+                    const tex = loader.load(imgUrl);
                     mat = new THREE.MeshBasicMaterial({ map: tex });
                 }
                 const mesh = new THREE.Mesh(artGeo, mat);
@@ -1674,7 +1678,8 @@
         minimapCanvas.height = 200;
 
         function updateMinimap() {
-            if(document.getElementById('minimap-container').style.display === 'none') return;
+            const container = document.getElementById('minimap-container');
+            if(!container || container.style.display === 'none') return;
             
             minimapCtx.clearRect(0, 0, 200, 200);
 
