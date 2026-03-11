@@ -6,10 +6,9 @@
     <script>
         window.addEventListener('error', function(e) {
             if(e.message) {
-                alert('CRITICAL ERROR:\n' + e.message + '\nLinea: ' + e.lineno);
-            } else if(e.target && e.target.src) {
-                // If it's a script/module loading error
-                alert('No se pudo cargar el script:\n' + e.target.src);
+                console.error('CRITICAL ERROR:', e.message, 'Linea:', e.lineno);
+            } else if(e.target && e.target.tagName === 'SCRIPT' && e.target.src) {
+                console.error('No se pudo cargar el script:', e.target.src);
             }
         }, true);
     </script>
@@ -65,38 +64,32 @@
             right: 30px;
             width: 200px;
             height: 200px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            overflow: hidden;
             pointer-events: none;
-            backdrop-filter: blur(4px);
         }
         #minimap-canvas { width: 100%; height: 100%; }
 
-        /* Artwork Info Panel / Small Page Modal */
+        /* Artwork Info Panel / Fullscreen Modal */
         #info-panel {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0.9);
-            width: 80%;
-            max-width: 800px;
-            max-height: 80vh;
-            background: rgba(255, 255, 255, 0.95);
-            color: #111;
-            padding: 50px;
+            width: 90vw;
+            height: 90vh;
+            background: rgba(10, 10, 10, 0.95);
+            color: #eee;
+            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            border: 1px solid #444;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
             z-index: 50;
             pointer-events: none;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            overflow-y: auto;
         }
         #info-panel.active {
             opacity: 1;
@@ -104,9 +97,9 @@
             pointer-events: auto;
             transform: translate(-50%, -50%) scale(1);
         }
-        #info-title { margin: 0; font-size: 2.5rem; border-bottom: 2px solid #ccc; padding-bottom: 10px; color: #111; }
-        #info-desc { margin: 0; font-size: 1.2rem; line-height: 1.6; color: #333; flex-grow: 1; white-space: pre-wrap; }
-        #info-author { margin: 0; font-size: 1rem; color: #666; font-style: italic; text-align: right; }
+        #info-title { margin: 0; font-size: 2.2rem; border-bottom: 2px solid #333; padding-bottom: 10px; color: #0ff; }
+        #info-desc { margin: 0; font-size: 1.1rem; line-height: 1.6; color: #ccc; flex-grow: 1; white-space: pre-wrap; overflow-y: auto; }
+        #info-author { margin: 0; font-size: 1rem; color: #888; font-style: italic; text-align: right; }
         
         .close-btn { 
             position: absolute; top: 15px; right: 20px; background: none; border: none; 
@@ -184,10 +177,19 @@
 
     <!-- Artwork Info Panel -->
     <div id="info-panel">
-        <button class="close-btn" onclick="closeInfoPanel()">×</button>
+        <button class="close-btn" onclick="closeInfoPanel()" style="color: #fff;">×</button>
         <h2 id="info-title">Título</h2>
-        <p id="info-desc">Descripción de la obra...</p>
-        <div id="info-author">Autor</div>
+        <div style="display:flex; flex-grow:1; gap:20px; min-height:0;">
+            <div style="flex:2; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; border-radius:8px; border:1px solid #333; overflow:hidden;">
+                <img id="info-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
+                <video id="info-video" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" controls loop autoplay muted playsinline></video>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:15px; overflow-y:auto; padding-right:10px;">
+                <p id="info-desc">Descripción de la obra...</p>
+                <div id="info-author">Autor</div>
+                <button id="info-link-btn" class="tb-btn primary" style="display:none; width:100%; padding:15px; font-size:1.1rem;" onclick="window.open(this.dataset.url, '_blank')">🌐 Visitar Enlace Externo</button>
+            </div>
+        </div>
     </div>
 
     <!-- Tour Controls HUD -->
@@ -211,6 +213,12 @@
         <span style="font-weight:bold; color:#888; font-size: 0.8rem; white-space: nowrap;">GESTOR DE GALERÍA</span>
         <input type="text" id="tb-title" placeholder="Título" class="tb-input">
         <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width:150px;">
+        <select id="tb-aspect" class="tb-input" style="margin-right: 5px;">
+            <option value="vertical">Vertical (2:3)</option>
+            <option value="4:3">Horizontal (4:3)</option>
+            <option value="16:9">Horizontal (16:9)</option>
+        </select>
+        <input type="text" id="tb-link" placeholder="Enlace Externo (URL)" class="tb-input" style="max-width:200px;">
         <input type="hidden" id="tb-imgUrl">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom: 5px;">
             <label style="font-size:0.75rem; color:#aaa;">Sube tu propia obra (.png, .jpg):</label>
@@ -239,10 +247,10 @@
 
     <script type="module">
         window.addEventListener('error', function(e) {
-            alert('JS Error: ' + e.message + '\nAt: ' + e.filename + ':' + e.lineno);
+            console.error('JS Error:', e.message, 'At:', e.filename + ':' + e.lineno);
         });
         window.addEventListener('unhandledrejection', function(e) {
-            alert('Promise Error: ' + e.reason);
+            console.error('Promise Error:', e.reason);
         });
         
         import * as THREE from 'three';
@@ -1162,7 +1170,8 @@
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000); // TRON Pitch Black
-        scene.fog = new THREE.Fog(0x000000, 2, 70); // Dark fade out
+        // Add strong fog to fade distant wireframes into black, simulating Depth of Field / horizon
+        scene.fog = new THREE.Fog(0x000000, 5, 25);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
         
@@ -1246,25 +1255,23 @@
         const wallGridTex = createTronGridTexture('#ff00ff', '#000000', 1); 
         wallGridTex.repeat.set(4, 3.2); 
 
-        // ==========================================
-        // MAP GENERATION
-        // ==========================================
-        const wallMaterial = new THREE.MeshStandardMaterial({
-            color: 0x000000,
-            emissive: 0xff00ff,
-            emissiveMap: wallGridTex,
-            map: wallGridTex,
-            roughness: 0.1,
-            metalness: 0.9
+        const wireMat = new THREE.LineBasicMaterial({
+            color: 0x00ffff,
+            linewidth: 1
         });
         
+        const solidMat = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1
+        });
+
         const floorMaterial = new THREE.MeshStandardMaterial({
             color: 0x000000,
-            emissive: 0xff00ff,
-            emissiveMap: floorGridTex,
-            map: floorGridTex,
-            roughness: 0.1,
-            metalness: 0.9
+            emissive: 0x00ffff,
+            wireframe: true,
+            emissiveIntensity: 1.5
         });
 
         // Build walls
@@ -1286,26 +1293,32 @@
             
             const floorGeo = new THREE.PlaneGeometry(mapWidth, mapDepth);
             floorGeo.rotateX(-Math.PI / 2);
-            const floor = new THREE.Mesh(floorGeo, floorMaterial);
+            
+            // Create GridHelper for Floor to avoid diagonals
+            const floorGridSize = Math.max(mapWidth, mapDepth);
+            const floorGridDivisions = floorGridSize / (CONFIG.tileSize / 4); // 4 squares per tile
+            const floorLines = new THREE.GridHelper(floorGridSize, floorGridDivisions, 0x00ffff, 0x00ffff);
+            
+            const solidFloor = new THREE.Mesh(floorGeo, solidMat);
             // Center the floor under the grid
             const centerX = (cols * CONFIG.tileSize)/2 - CONFIG.tileSize/2;
             const centerZ = (rows * CONFIG.tileSize)/2 - CONFIG.tileSize/2;
-            floor.position.set(centerX, 0, centerZ);
-            scene.add(floor);
             
-            const ceilMat = new THREE.MeshStandardMaterial({
-                color: 0x000000, 
-                emissive: 0xff00ff, 
-                emissiveMap: floorGridTex, 
-                map: floorGridTex,
-                roughness: 0.1,
-                metalness: 0.9
-            });
-            const ceil = new THREE.Mesh(floorGeo, ceilMat);
-            ceil.position.copy(floor.position);
-            ceil.position.y = CONFIG.wallHeight;
-            ceil.rotateX(Math.PI);
-            scene.add(ceil);
+            floorLines.position.set(centerX, 0, centerZ);
+            solidFloor.position.set(centerX, 0, centerZ);
+            scene.add(floorLines);
+            scene.add(solidFloor);
+            
+            // Create GridHelper for Ceiling
+            const ceilLines = new THREE.GridHelper(floorGridSize, floorGridDivisions, 0x00ffff, 0x00ffff);
+            
+            const solidCeil = new THREE.Mesh(floorGeo, solidMat);
+            ceilLines.position.copy(floorLines.position);
+            solidCeil.position.copy(floorLines.position);
+            ceilLines.position.y = CONFIG.wallHeight;
+            solidCeil.position.y = CONFIG.wallHeight;
+            scene.add(ceilLines);
+            scene.add(solidCeil);
 
             // Benches and Light Panels geometries
             const benchGeo = new THREE.BoxGeometry(2, 0.45, 0.6);
@@ -1320,6 +1333,45 @@
 
             // Walls
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
+            
+            // Build a manual wireframe grid for a single wall tile (without diagonals)
+            const wallLinesGeo = new THREE.BufferGeometry();
+            const wallLinesPts = [];
+            const wX = CONFIG.tileSize;
+            const wY = CONFIG.wallHeight;
+            const wZ = CONFIG.tileSize;
+            
+            const divX = 4, divY = 3, divZ = 4;
+            // X-Y faces
+            for (let z of [-wZ/2, wZ/2]) {
+                for(let i=0; i<=divX; i++) {
+                    let rx = -wX/2 + (i/divX)*wX;
+                    wallLinesPts.push(new THREE.Vector3(rx, -wY/2, z), new THREE.Vector3(rx, wY/2, z));
+                }
+                for(let j=0; j<=divY; j++) {
+                    let ry = -wY/2 + (j/divY)*wY;
+                    wallLinesPts.push(new THREE.Vector3(-wX/2, ry, z), new THREE.Vector3(wX/2, ry, z));
+                }
+            }
+            // Z-Y faces
+            for (let x of [-wX/2, wX/2]) {
+                for(let i=0; i<=divZ; i++) {
+                    let rz = -wZ/2 + (i/divZ)*wZ;
+                    wallLinesPts.push(new THREE.Vector3(x, -wY/2, rz), new THREE.Vector3(x, wY/2, rz));
+                }
+            }
+            // X-Z connecting lines are covered by adjacent walls, but for completeness (top/bottom borders)
+            for (let y of [-wY/2, wY/2]) {
+                for(let i=0; i<=divX; i++) {
+                    let rx = -wX/2 + (i/divX)*wX;
+                    wallLinesPts.push(new THREE.Vector3(rx, y, -wZ/2), new THREE.Vector3(rx, y, wZ/2));
+                }
+                for(let k=0; k<=divZ; k++) {
+                    let rz = -wZ/2 + (k/divZ)*wZ;
+                    wallLinesPts.push(new THREE.Vector3(-wX/2, y, rz), new THREE.Vector3(wX/2, y, rz));
+                }
+            }
+            wallLinesGeo.setFromPoints(wallLinesPts);
 
             for(let z=0; z<rows; z++) {
                 for(let x=0; x<cols; x++) {
@@ -1327,9 +1379,14 @@
                         const wallGroup = new THREE.Group();
                         wallGroup.position.set(x * CONFIG.tileSize, 0, z * CONFIG.tileSize);
 
-                        const mesh = new THREE.Mesh(wallGeo, wallMaterial);
+                        const mesh = new THREE.Mesh(wallGeo, solidMat);
                         mesh.position.y = CONFIG.wallHeight/2;
+                        
+                        const lines = new THREE.LineSegments(wallLinesGeo, wireMat);
+                        lines.position.y = CONFIG.wallHeight/2;
+
                         wallGroup.add(mesh);
+                        wallGroup.add(lines);
 
                         scene.add(wallGroup);
                         
@@ -1378,6 +1435,23 @@
                             scene.add(pyramid);
                             STATE.meshes.floatingShapes.push(pyramid);
                         }
+                        
+                        // Add large spinning green spheres in the exhibition rooms
+                        if (x % 3 === 1 && z % 3 === 1) {
+                            const sphereGeo = new THREE.IcosahedronGeometry(0.8, 1); // Large Geodesic Sphere
+                            const sphereMat = new THREE.MeshStandardMaterial({
+                                color: 0x000000, 
+                                emissive: 0x00ff00, // Green
+                                wireframe: true, 
+                                emissiveIntensity: 2.0
+                            });
+                            const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+                            // Float high in the room
+                            sphere.position.set(x * CONFIG.tileSize, 2.8, z * CONFIG.tileSize);
+                            sphere.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+                            scene.add(sphere);
+                            STATE.meshes.floatingShapes.push(sphere);
+                        }
                     } else if (grid[z][x] === 0) {
                         // Linear lights on ceiling in corridors (Air cells)
                         const corridorLight = new THREE.Mesh(linearLightGeo, linearLightMat);
@@ -1393,9 +1467,10 @@
                         
                         scene.add(corridorLight);
                         
-                        // Spawn random floating rotating geometric primitives
-                        if (Math.random() < 0.15) { // 15% chance per corridor cell
-                            const shapeType = Math.floor(Math.random() * 3);
+                        // Spawn random floating rotating geometric primitives (with extra green spheres)
+                        if (Math.random() < 0.30) { // 30% chance per corridor cell
+                            const forceGreenSphere = Math.random() < 0.5; // Half of them are forced to be green spheres
+                            const shapeType = forceGreenSphere ? 2 : Math.floor(Math.random() * 3);
                             let geom;
                             if (shapeType === 0) geom = new THREE.TetrahedronGeometry(0.4);
                             else if (shapeType === 1) geom = new THREE.OctahedronGeometry(0.4);
@@ -1403,7 +1478,7 @@
                             
                             const shapeMat = new THREE.MeshStandardMaterial({
                                 color: 0x000000, 
-                                emissive: Math.random() < 0.5 ? 0x00ffff : 0x00ff00, // Cyan or Green
+                                emissive: (forceGreenSphere || Math.random() < 0.5) ? 0x00ff00 : 0x00ffff, // Green or Cyan
                                 wireframe: true, 
                                 emissiveIntensity: 1.5
                             });
@@ -1451,13 +1526,24 @@
             const loader = new THREE.TextureLoader();
             loader.setCrossOrigin('anonymous');
             
-            const artGeo = new THREE.PlaneGeometry(2, 3); // 2m x 3m canvas
-            const frameGeo = new THREE.BoxGeometry(2.1, 3.1, 0.05);
-            const frameMat = new THREE.MeshStandardMaterial({color:0x222222, roughness: 0.8});
-            const logoGeo = new THREE.PlaneGeometry(1.2, 0.4); // Assuming ~3:1 aspect ratio logo
+            const frameMat = new THREE.MeshStandardMaterial({
+                color: 0x000000, 
+                emissive: 0x00ffff, 
+                wireframe: true, 
+                emissiveIntensity: 1.5
+            });
             
             STATE.galleryData.artworks.forEach((art, index) => {
                 let mat;
+                
+                // Determine Dimensions
+                let w = 2, h = 3;
+                if(art.aspect === '4:3') { w = 2.8; h = 2.1; }
+                else if(art.aspect === '16:9') { w = 3.2; h = 1.8; }
+                
+                const artGeo = new THREE.PlaneGeometry(w, h);
+                const frameGeo = new THREE.BoxGeometry(w + 0.1, h + 0.1, 0.05);
+                const logoGeo = new THREE.PlaneGeometry(w * 0.6, (w * 0.6) / 3);
                 
                 if(art.image && (art.image.startsWith('data:video/') || art.image.startsWith('objecturl:video:'))) {
                     // === VIDEO TEXTURE ===
@@ -1519,7 +1605,7 @@
                 
                 // Add Zirkel logo over the artwork
                 const logo = new THREE.Mesh(logoGeo, zirkelLogoMat);
-                logo.position.set(0, 1.9, 0.01); // 1.9m above the center of the artwork canvas
+                logo.position.set(0, (h / 2) + 0.4, 0.01); // Just above canvas
                 mesh.add(logo);
                 
                 // Light strictly for the painting focus
@@ -1549,19 +1635,19 @@
             STATE.galleryData.artworks = [
                 // Expansion: Splendid Parametric Arch from Unsplash
                 {
-                    id: "unsplash_1", title: "Estructura Modular", description: "Diseño algorítmico y cerramientos curvos.", author: "Arquitectura Paramétrica",
+                    id: "art_unsplash_1", title: "Estructura Modular", description: "Diseño algorítmico y cerramientos curvos.", author: "Arquitectura Paramétrica",
                     image: "https://images.unsplash.com/photo-1543169865-c9a9ccb24982?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 2 * t, y: h, z: 1 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(2,1) North Wall
                 },
                 {
-                    id: "unsplash_2", title: "Túneles Orgánicos", description: "Corredores iluminados y nervaduras estructurales.", author: "Zirkel Studio",
+                    id: "art_unsplash_2", title: "Túneles Orgánicos", description: "Corredores iluminados y nervaduras estructurales.", author: "Zirkel Studio",
                     image: "https://images.unsplash.com/photo-1506544777-64cfbea6ab16?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 3 * t, y: h, z: 1 * t - t/2 + 0.01,
                     rx: 0, ry: 0, rz: 0 // Cell(3,1) North Wall
                 },
                 {
-                    id: "unsplash_3", title: "Cubierta Ondulante", description: "Madera entrelazada y geometría compleja en techos.", author: "Diseño Computacional",
+                    id: "art_unsplash_3", title: "Cubierta Ondulante", description: "Madera entrelazada y geometría compleja en techos.", author: "Diseño Computacional",
                     image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
                     x: 1 * t - t/2 + 0.01, y: h, z: 3 * t,
                     rx: 0, ry: Math.PI/2, rz: 0 // Cell(1,3) West Wall
@@ -1580,6 +1666,57 @@
                 const tb = document.getElementById('taskbar');
                 if(STATE.taskbarOpen) {
                     controls.unlock();
+                    
+                    // Raycast to check if we are aiming at an existing artwork
+                    const rc = new THREE.Raycaster();
+                    rc.setFromCamera(new THREE.Vector2(0,0), camera);
+                    // Pass true to check children (the frame, the image, the logo)
+                    const intersects = rc.intersectObjects(STATE.meshes.artworks, true);
+                    
+                    if(intersects.length > 0 && intersects[0].distance < 4) {
+                        // The intersection might be the child (frame/logo) or the parent plane.
+                        let obj = intersects[0].object;
+                        let art = null;
+                        
+                        // Climb the tree to find the node with metadata
+                        while(obj) {
+                            if (obj.userData && obj.userData.metadata) {
+                                art = obj.userData.metadata;
+                                break;
+                            }
+                            obj = obj.parent;
+                        }
+                        
+                        if (art) {
+                            STATE.selectedArtwork = art.id;
+                            document.getElementById('tb-title').value = art.title;
+                            document.getElementById('tb-author').value = art.author || '';
+                            document.getElementById('tb-imgUrl').value = art.image;
+                            document.getElementById('tb-desc').value = art.description || '';
+                            document.getElementById('tb-aspect').value = art.aspect || 'vertical';
+                            document.getElementById('tb-link').value = art.linkUrl || '';
+                            document.getElementById('btn-delete').disabled = false;
+                        } else {
+                            STATE.selectedArtwork = null;
+                            document.getElementById('tb-title').value = '';
+                            document.getElementById('tb-author').value = '';
+                            document.getElementById('tb-imgUrl').value = '';
+                            document.getElementById('tb-desc').value = '';
+                            document.getElementById('tb-aspect').value = 'vertical';
+                            document.getElementById('tb-link').value = '';
+                            document.getElementById('btn-delete').disabled = true;
+                        }
+                    } else {
+                        STATE.selectedArtwork = null;
+                        document.getElementById('tb-title').value = '';
+                        document.getElementById('tb-author').value = '';
+                        document.getElementById('tb-imgUrl').value = '';
+                        document.getElementById('tb-desc').value = '';
+                        document.getElementById('tb-aspect').value = 'vertical';
+                        document.getElementById('tb-link').value = '';
+                        document.getElementById('btn-delete').disabled = true;
+                    }
+                    
                     tb.classList.add('active');
                 } else {
                     tb.classList.remove('active');
@@ -1648,34 +1785,42 @@
             if(intersects.length > 0 && intersects[0].distance < 4) {
                 const art = intersects[0].object.userData.metadata;
                 
-                // If artwork has a link, open it in a new tab
-                if(art.linkUrl) {
-                    window.open(art.linkUrl, '_blank');
-                }
-
                 document.getElementById('info-title').innerText = art.title;
                 document.getElementById('info-desc').innerText = art.description;
                 document.getElementById('info-author').innerText = art.author || 'Autor desconocido';
                 
+                // Set Link UI
+                const linkBtn = document.getElementById('info-link-btn');
+                if(art.linkUrl) {
+                    linkBtn.style.display = 'block';
+                    linkBtn.dataset.url = art.linkUrl;
+                } else {
+                    linkBtn.style.display = 'none';
+                }
+
+                // Set Media UI
+                const imgEl = document.getElementById('info-img');
+                const vidEl = document.getElementById('info-video');
+                imgEl.style.display = 'none';
+                vidEl.style.display = 'none';
+                vidEl.pause();
+                
+                if(art.image && (art.image.startsWith('data:video/') || art.image.startsWith('objecturl:video:'))) {
+                    vidEl.style.display = 'block';
+                    vidEl.src = art.image.startsWith('objecturl:video:') ? art.image.replace('objecturl:video:', '') : art.image;
+                } else if(art.image) {
+                    imgEl.style.display = 'block';
+                    if (art.image.startsWith('http')) {
+                        imgEl.src = 'https://wsrv.nl/?url=' + encodeURIComponent(art.image);
+                    } else {
+                        imgEl.src = art.image;
+                    }
+                }
+                
                 document.getElementById('info-panel').classList.add('active');
                 
-                // Auto unlock to allow cursor editing if needed
+                // Auto unlock to allow interaction with the internal button
                 controls.unlock();
-                
-                // Select for taskbar edits and populate fields
-                STATE.selectedArtwork = art.id;
-                document.getElementById('tb-title').value = art.title;
-                document.getElementById('tb-author').value = art.author || '';
-                document.getElementById('tb-imgUrl').value = art.image;
-                document.getElementById('tb-desc').value = art.description || '';
-                document.getElementById('btn-delete').disabled = false;
-            } else {
-                STATE.selectedArtwork = null;
-                document.getElementById('btn-delete').disabled = true;
-                document.getElementById('tb-title').value = '';
-                document.getElementById('tb-author').value = '';
-                document.getElementById('tb-imgUrl').value = '';
-                document.getElementById('tb-desc').value = '';
             }
         });
 
@@ -1786,17 +1931,20 @@
             const dir = new THREE.Vector3(0,0,-1);
             dir.applyQuaternion(camera.quaternion);
             
-            minimapCtx.fillStyle = '#f00';
+            minimapCtx.fillStyle = '#ff0000'; // Pure red
             minimapCtx.beginPath();
-            minimapCtx.arc(px, pz, 4, 0, Math.PI*2);
+            minimapCtx.arc(px, pz, 6, 0, Math.PI*2); // Bigger player dot
             minimapCtx.fill();
             
             // View cone
-            minimapCtx.strokeStyle = 'rgba(255,0,0,0.5)';
+            minimapCtx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            minimapCtx.lineWidth = 2; // Thicker line
             minimapCtx.beginPath();
             minimapCtx.moveTo(px, pz);
-            minimapCtx.lineTo(px + dir.x * 20, pz + dir.z * 20);
+            minimapCtx.lineTo(px + dir.x * 35, pz + dir.z * 35); // Longer direction line
             minimapCtx.stroke();
+            // Reset line width for next frames if needed
+            minimapCtx.lineWidth = 1;
         }
 
         // ==========================================
@@ -1914,6 +2062,8 @@
             const author = document.getElementById('tb-author').value || "Zirkel";
             const url = document.getElementById('tb-imgUrl').value;
             const desc = document.getElementById('tb-desc').value || "Nueva instalación en la galería.";
+            const aspect = document.getElementById('tb-aspect').value;
+            const linkUrl = document.getElementById('tb-link').value;
             
             // URL is populated automatically by the FileReader when a file is uploaded
 
@@ -1925,6 +2075,8 @@
                     STATE.galleryData.artworks[idx].author = author;
                     STATE.galleryData.artworks[idx].image = url;
                     STATE.galleryData.artworks[idx].description = desc;
+                    STATE.galleryData.artworks[idx].aspect = aspect;
+                    STATE.galleryData.artworks[idx].linkUrl = linkUrl;
                 }
             } else {
                 // Add new by raycasting strictly onto the wall we are facing
@@ -1943,6 +2095,8 @@
                         description: desc,
                         author: author,
                         image: url,
+                        aspect: aspect,
+                        linkUrl: linkUrl,
                         x: point.x + normal.x * 0.02, 
                         y: CONFIG.wallHeight / 2 - 0.2, // always mount at eye level
                         z: point.z + normal.z * 0.02,
@@ -1965,6 +2119,8 @@
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
             document.getElementById('tb-desc').value = '';
+            document.getElementById('tb-aspect').value = 'vertical';
+            document.getElementById('tb-link').value = '';
             document.getElementById('tb-file').value = '';
             closeTaskbar(); // Restore movement immediately after saving
         };
@@ -1983,6 +2139,9 @@
             document.getElementById('tb-author').value = '';
             document.getElementById('tb-imgUrl').value = '';
             document.getElementById('tb-desc').value = '';
+            document.getElementById('tb-aspect').value = 'vertical';
+            document.getElementById('tb-link').value = '';
+            document.getElementById('tb-file').value = '';
             closeTaskbar(); // Close the menu after deletion
         };
 

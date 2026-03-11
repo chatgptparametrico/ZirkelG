@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "serve": "npx -y http-server . -p 8080 -o"
+  },
   "dependencies": {
     "puppeteer": "^24.38.0",
     "three": "^0.183.2"
