@@ -142,10 +142,49 @@
 
         /* File Input */
         #import-input { display: none; }
+
+        /* Toasts */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(10, 15, 25, 0.95);
+            color: #0ff;
+            border: 1px solid #0ff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            font-family: monospace;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(8px);
+            animation: toast-in 0.3s ease-out, toast-out 0.3s ease-in 2.7s forwards;
+            pointer-events: auto;
+        }
+        .toast.error { color: #f33; border-color: #f33; box-shadow: 0 0 20px rgba(255, 0, 0, 0.2); }
+        .toast.success { color: #0f0; border-color: #0f0; box-shadow: 0 0 20px rgba(0, 255, 0, 0.2); }
+        @keyframes toast-in {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes toast-out {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-20px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
+    <div id="toast-container"></div>
     <div id="canvas-container"></div>
     
     <div id="hud">
@@ -167,7 +206,8 @@
                 <div><kbd>T</kbd> Activar Auto-Tour</div>
                 <div><kbd>L</kbd> Auto-Mirar (en Tour)</div>
                 <div><kbd>+</kbd><kbd>-</kbd> Velocidad Tour</div>
-                <div><kbd>H</kbd> Abrir menú de carga</div>
+                <div><kbd>H</kbd> Abrir menú de carga / Editar</div>
+                <div><kbd>J</kbd> Menú de Guardado y Exportación</div>
             </div>
         </div>
     </div>
@@ -226,13 +266,58 @@
         </div>
         <textarea id="tb-desc" placeholder="Descripción extendida de la obra..." class="tb-input" style="height: 35px; resize: vertical; min-height: 35px; max-height: 150px;"></textarea>
         
+        <div style="border-left:1px solid #444; height:30px; margin:0 5px;"></div>
+        <input type="text" id="tb-config-name" placeholder="Nombre Galería" class="tb-input" style="max-width:150px;">
         <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva Obra</button>
         <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>Eliminar Obra</button>
         <div style="flex-grow:1;"></div>
-        <button class="tb-btn" onclick="exportGallery()">Exportar JSON</button>
         <button class="tb-btn" onclick="document.getElementById('import-input').click()">Importar JSON</button>
         <input type="file" id="import-input" accept=".json" onchange="importGallery(event)">
+        <input type="file" id="zip-import-input" accept=".zip" style="display:none;" onchange="importZipFromServer(event)">
+
+        <div style="flex-grow:1;"></div>
         <button class="tb-btn" onclick="closeTaskbar()" style="background:#444; border:1px solid #888; margin-left:8px; font-size:1rem; padding: 4px 12px;">✕ Cerrar</button>
+    </div>
+
+    <!-- Load Config Menu (Modal) -->
+    <div id="load-menu" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:400px; background:rgba(20,20,20,0.98); border:1px solid #444; border-radius:12px; z-index:200; display:none; flex-direction:column; padding:20px; box-shadow:0 0 40px rgba(0,0,0,0.8);">
+        <h2 style="margin-top:0; color:#0ff; border-bottom:1px solid #333; padding-bottom:10px;">Cargar Configuración</h2>
+        <div id="config-list" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+            <!-- Configs will be listed here -->
+        </div>
+        <button class="tb-btn" onclick="document.getElementById('load-menu').style.display='none'; if(!STATE.taskbarOpen) controls.lock();">Cerrar</button>
+    </div>
+
+    <!-- Save & Export Menu (Modal) - Opened with J -->
+    <div id="save-menu" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:450px; background:rgba(10,15,25,0.98); border:1px solid #0ff; border-radius:12px; z-index:210; display:none; flex-direction:column; padding:25px; box-shadow:0 0 50px rgba(0,255,255,0.3); backdrop-filter:blur(8px);">
+        <h2 style="margin-top:0; color:#0ff; border-bottom:1px solid #333; padding-bottom:15px; text-transform:uppercase; letter-spacing:2px;">Guardar Galería</h2>
+        
+        <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:15px;">
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; color:#888;">NOMBRE DE LA CONFIGURACIÓN (Servidor):</label>
+                <input type="text" id="menu-config-name" placeholder="Ej: Mi_Galeria_Tron" class="tb-input" style="max-width:none; font-size:1.1rem; padding:10px;">
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr; gap:10px;">
+                <button class="tb-btn primary" style="padding:15px; font-weight:bold; font-size:1rem;" onclick="saveToServerFromMenu()">💾 GUARDAR EN SERVIDOR</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <button class="tb-btn" style="padding:12px; background:#4b2c63; border-color:#9d50bb;" onclick="downloadZipFromMenu()">📦 DESCARGAR ZIP</button>
+                    <button class="tb-btn" style="padding:12px; background:#2c634b; border-color:#50bb9d;" onclick="document.getElementById('zip-import-input').click()">📥 CARGAR ZIP</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid #333; padding-top:15px; margin-bottom:15px;">
+            <label style="font-size:0.8rem; color:#888; display:block; margin-bottom:8px;">CONFIGURACIONES EN SERVIDOR:</label>
+            <div id="save-menu-config-list" style="max-height:150px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
+                <!-- Configs will be listed here -->
+                <span style="color:#666; font-size:0.8rem; text-align:center;">Cargando...</span>
+            </div>
+        </div>
+        
+        <p style="font-size:0.75rem; color:#666; font-style:italic; margin-bottom:15px;">Tip: El archivo ZIP incluye el JSON y todos los archivos multimedia subidos.</p>
+        
+        <button class="tb-btn" onclick="closeSaveMenu()" style="background:#333; padding:12px;">✕ CERRAR MENÚ</button>
     </div>
 
     <!-- Import Map generation logic and ThreeJS -->
@@ -280,7 +365,7 @@
                     [1,0,1,0,1,0,1,2,2,2,2,2,1,1,1,0,1],
                     [1,0,0,0,1,0,1,2,2,2,2,2,0,0,1,0,1],
                     [1,0,1,0,1,0,1,2,2,2,2,2,1,0,1,0,1],
-                    [1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1],
+                    [1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
                 ],
                 artworks: [
@@ -325,9 +410,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 77.45,
-        "z": 35,
-        "ry": -1.5707963267948966
+        "x": 52.55,
+        "z": 5,
+        "ry": 1.5707963267948966
     },
     {
         "title": "Santa Sofía",
@@ -1056,9 +1141,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 77.45,
-        "z": 25,
-        "ry": -1.5707963267948966
+        "x": 42.55,
+        "z": 5,
+        "ry": 1.5707963267948966
     },
     {
         "title": "Simulador Zirkel",
@@ -1125,16 +1210,15 @@
                     if(!file) return;
                     
                     if(file.type.startsWith('video/')) {
-                        // Use ObjectURL for videos - much lighter than base64
-                        const objectUrl = URL.createObjectURL(file);
-                        document.getElementById('tb-imgUrl').value = 'objecturl:video:' + objectUrl;
+                        // Upload to server instead of ObjectURL for persistence
+                        uploadMedia(file).then(url => {
+                            document.getElementById('tb-imgUrl').value = url;
+                        });
                     } else {
-                        // Images and GIFs use FileReader base64
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            document.getElementById('tb-imgUrl').value = event.target.result;
-                        };
-                        reader.readAsDataURL(file);
+                        // Upload to server
+                        uploadMedia(file).then(url => {
+                            document.getElementById('tb-imgUrl').value = url;
+                        });
                     }
                 });
             }
@@ -1171,7 +1255,7 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000); // TRON Pitch Black
         // Add strong fog to fade distant wireframes into black, simulating Depth of Field / horizon
-        scene.fog = new THREE.Fog(0x000000, 5, 25);
+        scene.fog = new THREE.Fog(0x000000, 8, 40);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
         
@@ -1468,7 +1552,9 @@
                         scene.add(corridorLight);
                         
                         // Spawn random floating rotating geometric primitives (with extra green spheres)
-                        if (Math.random() < 0.30) { // 30% chance per corridor cell
+                        // Don't spawn in the entrance corridor (X>=13, Z==9)
+                        const isEntranceCorridor = (z === 9 && x >= 13);
+                        if (Math.random() < 0.30 && !isEntranceCorridor) { // 30% chance per corridor cell
                             const forceGreenSphere = Math.random() < 0.5; // Half of them are forced to be green spheres
                             const shapeType = forceGreenSphere ? 2 : Math.floor(Math.random() * 3);
                             let geom;
@@ -1619,13 +1705,364 @@
         }
 
         // ==========================================
+        // MONUMENTAL PORTAL (Egyptian Temple Style)
+        // ==========================================
+        function buildPortal() {
+            const t = CONFIG.tileSize;
+            const portalGroup = new THREE.Group();
+            
+            // Portal position: just outside the bottom-right entrance
+            // The observer spawns at grid[9][15] (x=75, z=45)
+            // Portal faces West (-X), placed slightly to the East of spawn
+            const portalX = 16.5 * t;  // At the east wall boundary (the entrance)
+            const portalZ = 9 * t;     // Same row as spawn
+            
+            // === WIREFRAME MATERIAL (matching TRON aesthetic) ===
+            const portalWireMat = new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0x00ffff,
+                wireframe: true,
+                emissiveIntensity: 2.0
+            });
+            
+            const portalSolidMat = new THREE.MeshBasicMaterial({
+                color: 0x000811,
+                transparent: true,
+                opacity: 0.3
+            });
+            
+            const portalGlowMat = new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0xff00ff,
+                wireframe: true,
+                emissiveIntensity: 1.5
+            });
+
+            // === PYLON DIMENSIONS (Egyptian Trapezoidal Towers) ===
+            const pylonHeight = 10;      // 2.5x wall height - monumental!
+            const pylonBaseW = 4;        // Wide base
+            const pylonTopW = 2.5;       // Narrower top (trapezoidal)
+            const pylonDepth = 2.5;      // Depth of each pylon
+            const gateWidth = 6;         // Opening between pylons
+            
+            // Custom trapezoidal pylon geometry (hand-built vertices)
+            function createPylonGeometry() {
+                const geo = new THREE.BufferGeometry();
+                const hw = pylonBaseW / 2;
+                const htw = pylonTopW / 2;
+                const hd = pylonDepth / 2;
+                const h = pylonHeight;
+                
+                // 8 vertices: bottom 4 (wide) + top 4 (narrow, with batter/slope)
+                const vertices = new Float32Array([
+                    // Bottom face
+                    -hw, 0, -hd,   hw, 0, -hd,   hw, 0, hd,   -hw, 0, hd,
+                    // Top face (narrower - Egyptian batter)
+                    -htw, h, -hd*0.7,   htw, h, -hd*0.7,   htw, h, hd*0.7,   -htw, h, hd*0.7
+                ]);
+                
+                const indices = [
+                    // Bottom
+                    0,1,2, 0,2,3,
+                    // Top
+                    4,6,5, 4,7,6,
+                    // Front
+                    0,1,5, 0,5,4,
+                    // Back
+                    2,3,7, 2,7,6,
+                    // Left
+                    0,3,7, 0,7,4,
+                    // Right
+                    1,2,6, 1,6,5
+                ];
+                
+                geo.setIndex(indices);
+                geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                geo.computeVertexNormals();
+                return geo;
+            }
+            
+            // Create wireframe lines for pylon (no diagonals)
+            function createPylonWireframe() {
+                const pts = [];
+                const hw = pylonBaseW / 2;
+                const htw = pylonTopW / 2;
+                const hd = pylonDepth / 2;
+                const htd = hd * 0.7;
+                const h = pylonHeight;
+                
+                // Bottom square
+                pts.push(new THREE.Vector3(-hw,0,-hd), new THREE.Vector3(hw,0,-hd));
+                pts.push(new THREE.Vector3(hw,0,-hd), new THREE.Vector3(hw,0,hd));
+                pts.push(new THREE.Vector3(hw,0,hd), new THREE.Vector3(-hw,0,hd));
+                pts.push(new THREE.Vector3(-hw,0,hd), new THREE.Vector3(-hw,0,-hd));
+                
+                // Top square
+                pts.push(new THREE.Vector3(-htw,h,-htd), new THREE.Vector3(htw,h,-htd));
+                pts.push(new THREE.Vector3(htw,h,-htd), new THREE.Vector3(htw,h,htd));
+                pts.push(new THREE.Vector3(htw,h,htd), new THREE.Vector3(-htw,h,htd));
+                pts.push(new THREE.Vector3(-htw,h,htd), new THREE.Vector3(-htw,h,-htd));
+                
+                // Vertical edges (sloped)
+                pts.push(new THREE.Vector3(-hw,0,-hd), new THREE.Vector3(-htw,h,-htd));
+                pts.push(new THREE.Vector3(hw,0,-hd), new THREE.Vector3(htw,h,-htd));
+                pts.push(new THREE.Vector3(hw,0,hd), new THREE.Vector3(htw,h,htd));
+                pts.push(new THREE.Vector3(-hw,0,hd), new THREE.Vector3(-htw,h,htd));
+                
+                // Horizontal subdivision lines (Egyptian panel effect)
+                for (let i = 1; i <= 4; i++) {
+                    const t = i / 5;
+                    const iw = hw + (htw - hw) * t;
+                    const id = hd + (htd - hd) * t;
+                    const iy = h * t;
+                    pts.push(new THREE.Vector3(-iw, iy, -id), new THREE.Vector3(iw, iy, -id));
+                    pts.push(new THREE.Vector3(iw, iy, -id), new THREE.Vector3(iw, iy, id));
+                    pts.push(new THREE.Vector3(iw, iy, id), new THREE.Vector3(-iw, iy, id));
+                    pts.push(new THREE.Vector3(-iw, iy, id), new THREE.Vector3(-iw, iy, -id));
+                }
+                
+                // Vertical subdivision lines on front face
+                for (let i = 1; i <= 3; i++) {
+                    const t = i / 4;
+                    const bx = -hw + pylonBaseW * t;
+                    const tx = -htw + pylonTopW * t;
+                    pts.push(new THREE.Vector3(bx, 0, -hd), new THREE.Vector3(tx, pylonHeight, -htd));
+                    pts.push(new THREE.Vector3(bx, 0, hd), new THREE.Vector3(tx, pylonHeight, htd));
+                }
+                
+                const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+                return new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 1 }));
+            }
+            
+            const pylonGeo = createPylonGeometry();
+            
+            // Left pylon (south side)
+            const leftPylon = new THREE.Mesh(pylonGeo, portalSolidMat);
+            leftPylon.position.set(0, 0, gateWidth/2 + pylonDepth/2);
+            portalGroup.add(leftPylon);
+            
+            const leftWire = createPylonWireframe();
+            leftWire.position.copy(leftPylon.position);
+            portalGroup.add(leftWire);
+            
+            // Right pylon (north side)
+            const rightPylon = new THREE.Mesh(pylonGeo, portalSolidMat);
+            rightPylon.position.set(0, 0, -(gateWidth/2 + pylonDepth/2));
+            portalGroup.add(rightPylon);
+            
+            const rightWire = createPylonWireframe();
+            rightWire.position.copy(rightPylon.position);
+            portalGroup.add(rightWire);
+            
+            // === LINTEL (horizontal beam connecting pylons at top) ===
+            const lintelGeo = new THREE.BoxGeometry(pylonTopW, 1.2, gateWidth + pylonDepth * 2);
+            const lintelSolid = new THREE.Mesh(lintelGeo, portalSolidMat);
+            lintelSolid.position.set(0, pylonHeight + 0.6, 0);
+            portalGroup.add(lintelSolid);
+            
+            // Lintel wireframe
+            const lintelEdges = new THREE.EdgesGeometry(lintelGeo);
+            const lintelLines = new THREE.LineSegments(lintelEdges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+            lintelLines.position.copy(lintelSolid.position);
+            portalGroup.add(lintelLines);
+            
+            // === CORNICE (thin decorative strip above lintel - Egyptian style) ===
+            const corniceGeo = new THREE.BoxGeometry(pylonTopW + 0.3, 0.3, gateWidth + pylonDepth * 2 + 0.6);
+            const corniceSolid = new THREE.Mesh(corniceGeo, portalSolidMat);
+            corniceSolid.position.set(0, pylonHeight + 1.3, 0);
+            portalGroup.add(corniceSolid);
+            
+            const corniceEdges = new THREE.EdgesGeometry(corniceGeo);
+            const corniceLines = new THREE.LineSegments(corniceEdges, new THREE.LineBasicMaterial({ color: 0xff00ff }));
+            corniceLines.position.copy(corniceSolid.position);
+            portalGroup.add(corniceLines);
+            
+            // === ZIRKEL G TEXT (large, above the lintel - canvas rendered for clarity) ===
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 1024;
+            textCanvas.height = 256;
+            const tctx = textCanvas.getContext('2d');
+            
+            // Transparent background
+            tctx.clearRect(0, 0, 1024, 256);
+            
+            // Glow effect
+            tctx.shadowColor = '#00ffff';
+            tctx.shadowBlur = 30;
+            
+            // Main text
+            tctx.font = 'bold 140px "Segoe UI", Arial, sans-serif';
+            tctx.textAlign = 'center';
+            tctx.textBaseline = 'middle';
+            tctx.fillStyle = '#00ffff';
+            tctx.fillText('ZIRKEL G', 512, 128);
+            
+            // Second pass for stronger glow
+            tctx.shadowBlur = 15;
+            tctx.fillText('ZIRKEL G', 512, 128);
+            
+            // Subtle underline
+            tctx.shadowBlur = 10;
+            tctx.strokeStyle = '#ff00ff';
+            tctx.lineWidth = 3;
+            tctx.beginPath();
+            tctx.moveTo(180, 200);
+            tctx.lineTo(844, 200);
+            tctx.stroke();
+            
+            const textTexture = new THREE.CanvasTexture(textCanvas);
+            textTexture.needsUpdate = true;
+            
+            const logoWidth = 10;
+            const logoHeight = logoWidth * (256 / 1024);
+            const textGeo = new THREE.PlaneGeometry(logoWidth, logoHeight);
+            const textMat = new THREE.MeshBasicMaterial({ 
+                map: textTexture, 
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            
+            const textMesh = new THREE.Mesh(textGeo, textMat);
+            textMesh.position.set(0, pylonHeight + 3.5, 0);
+            textMesh.rotation.y = Math.PI / 2; // Fixed mirroring: read left-to-right from West
+            portalGroup.add(textMesh);
+            
+            // === DECORATIVE OBELISKS (flanking the portal) ===
+            function createObelisk(height, baseSize) {
+                const obeliskGroup = new THREE.Group();
+                
+                // Shaft (tall thin pyramid-ish)
+                const shaftGeo = new THREE.CylinderGeometry(baseSize * 0.3, baseSize, height, 4);
+                const shaft = new THREE.Mesh(shaftGeo, portalSolidMat);
+                shaft.position.y = height / 2;
+                shaft.rotation.y = Math.PI / 4; // Rotate to align with grid
+                obeliskGroup.add(shaft);
+                
+                const shaftEdges = new THREE.EdgesGeometry(shaftGeo);
+                const shaftLines = new THREE.LineSegments(shaftEdges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+                shaftLines.position.copy(shaft.position);
+                shaftLines.rotation.copy(shaft.rotation);
+                obeliskGroup.add(shaftLines);
+                
+                // Pyramidion (tip cap - glowing)
+                const tipGeo = new THREE.TetrahedronGeometry(baseSize * 0.5);
+                const tip = new THREE.Mesh(tipGeo, portalGlowMat);
+                tip.position.y = height + baseSize * 0.3;
+                obeliskGroup.add(tip);
+                STATE.meshes.floatingShapes.push(tip); // Spin with other shapes
+                
+                // Base pedestal
+                const baseGeo = new THREE.BoxGeometry(baseSize * 1.5, 0.3, baseSize * 1.5);
+                const baseMesh = new THREE.Mesh(baseGeo, portalSolidMat);
+                baseMesh.position.y = 0.15;
+                obeliskGroup.add(baseMesh);
+                
+                const baseEdges = new THREE.EdgesGeometry(baseGeo);
+                const baseLines = new THREE.LineSegments(baseEdges, new THREE.LineBasicMaterial({ color: 0xff00ff }));
+                baseLines.position.copy(baseMesh.position);
+                obeliskGroup.add(baseLines);
+                
+                return obeliskGroup;
+            }
+            
+            // Four obelisks flanking the portal
+            const obeliskH = 7;
+            const obeliskB = 0.5;
+            
+            const ob1 = createObelisk(obeliskH, obeliskB);
+            ob1.position.set(pylonBaseW * 0.8, 0, gateWidth/2 + pylonDepth + 1.5);
+            portalGroup.add(ob1);
+            
+            const ob2 = createObelisk(obeliskH, obeliskB);
+            ob2.position.set(pylonBaseW * 0.8, 0, -(gateWidth/2 + pylonDepth + 1.5));
+            portalGroup.add(ob2);
+            
+            const ob3 = createObelisk(obeliskH, obeliskB);
+            ob3.position.set(-pylonBaseW * 0.8, 0, gateWidth/2 + pylonDepth + 1.5);
+            portalGroup.add(ob3);
+            
+            const ob4 = createObelisk(obeliskH, obeliskB);
+            ob4.position.set(-pylonBaseW * 0.8, 0, -(gateWidth/2 + pylonDepth + 1.5));
+            portalGroup.add(ob4);
+            
+            // === GLOWING ACCENT LIGHTS at portal base ===
+            const accentLight1 = new THREE.PointLight(0x00ffff, 1.0, 15);
+            accentLight1.position.set(0, 2, 0);
+            portalGroup.add(accentLight1);
+            
+            const accentLight2 = new THREE.PointLight(0xff00ff, 0.5, 10);
+            accentLight2.position.set(0, pylonHeight, 0);
+            portalGroup.add(accentLight2);
+            
+            // === ENTRANCE LOBBY ROOM (enclosed space outside the grid) ===
+            // Creates walls so the observer can't wander off — only exit is through the portal
+            const lobbyLength = 5 * t;   // How far east from the portal the lobby extends
+            const lobbyHalfWidth = gateWidth/2 + pylonDepth + 2.5;  // Match portal width + margin
+            const lobbyHeight = CONFIG.wallHeight;
+            
+            // Lobby wall material (same TRON wireframe style)
+            const lobbyWallGeo = new THREE.BoxGeometry(0.2, lobbyHeight, 0.2); // thin placeholder
+            
+            function addLobbyWall(width, height, depth, px, py, pz) {
+                const geo = new THREE.BoxGeometry(width, height, depth);
+                const solid = new THREE.Mesh(geo, portalSolidMat);
+                solid.position.set(px, py, pz);
+                portalGroup.add(solid);
+                
+                const edges = new THREE.EdgesGeometry(geo);
+                const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+                lines.position.set(px, py, pz);
+                portalGroup.add(lines);
+                
+                // Add collision
+                solid.geometry.computeBoundingBox();
+                solid.userData.box = new THREE.Box3();
+                const worldPos = new THREE.Vector3(portalX + px, py, portalZ + pz);
+                solid.userData.box.setFromCenterAndSize(
+                    worldPos,
+                    new THREE.Vector3(width, height, depth)
+                );
+                STATE.meshes.walls.push(solid);
+            }
+            
+            // South wall (right side when facing west)
+            addLobbyWall(lobbyLength, lobbyHeight, 0.3, lobbyLength/2, lobbyHeight/2, lobbyHalfWidth);
+            
+            // North wall (left side when facing west)
+            addLobbyWall(lobbyLength, lobbyHeight, 0.3, lobbyLength/2, lobbyHeight/2, -lobbyHalfWidth);
+            
+            // East wall (back wall behind spawn) 
+            addLobbyWall(0.3, lobbyHeight, lobbyHalfWidth * 2, lobbyLength, lobbyHeight/2, 0);
+            
+            // Lobby floor extension (grid only covers up to X=16)
+            const lobbyFloorGeo = new THREE.PlaneGeometry(lobbyLength + t, lobbyHalfWidth * 2 + t);
+            lobbyFloorGeo.rotateX(-Math.PI / 2);
+            const lobbyFloor = new THREE.Mesh(lobbyFloorGeo, solidMat);
+            lobbyFloor.position.set(lobbyLength/2, 0.01, 0);
+            portalGroup.add(lobbyFloor);
+            
+            // Lobby floor wireframe grid
+            const lobbyGridSize = Math.max(lobbyLength + t, lobbyHalfWidth * 2 + t);
+            const lobbyGridDiv = lobbyGridSize / (CONFIG.tileSize / 4);
+            const lobbyGrid = new THREE.GridHelper(lobbyGridSize, lobbyGridDiv, 0x00ffff, 0x00ffff);
+            lobbyGrid.position.set(lobbyLength/2, 0.01, 0);
+            portalGroup.add(lobbyGrid);
+
+            // Position the entire portal group
+            portalGroup.position.set(portalX, 0, portalZ);
+            scene.add(portalGroup);
+        }
+
+        // ==========================================
         // STARTUP
         // ==========================================
         buildGrid();
+        buildPortal();
         
-        // Spawn Player physically in the middle of a corridor 
-        // e.g., grid[1][1] is air
-        camera.position.set(1 * CONFIG.tileSize, CONFIG.cameraHeight, 1 * CONFIG.tileSize);
+        // Spawn Player OUTSIDE the gallery, east of the portal, facing West
+        camera.position.set(19 * CONFIG.tileSize, CONFIG.cameraHeight, 9 * CONFIG.tileSize);
+        camera.lookAt(16 * CONFIG.tileSize, CONFIG.cameraHeight, 9 * CONFIG.tileSize);
 
         // Vibrant dummy data of Parametric Structures properly attached to walls
         if(STATE.galleryData.artworks.length === 0) {
@@ -1660,8 +2097,19 @@
         // INPUT & MOVEMENT
         // ==========================================
         document.addEventListener('keydown', (e) => {
-            // Taskbar Toggle
-            if(e.code === 'KeyH') {
+                // Save Menu Toggle
+                // Save Menu Only Open with J
+                if(e.code === 'KeyJ') {
+                    const sm = document.getElementById('save-menu');
+                    const isActive = sm.style.display === 'flex';
+                    if(!isActive) {
+                        openSaveMenu();
+                    }
+                    // Removed toggle/close logic - "se cierre con un boton"
+                    return;
+                }
+                // Taskbar Toggle
+                if(e.code === 'KeyH') {
                 STATE.taskbarOpen = !STATE.taskbarOpen;
                 const tb = document.getElementById('taskbar');
                 if(STATE.taskbarOpen) {
@@ -2039,6 +2487,269 @@
             downloadAnchorNode.remove();
         };
 
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        window.showToast = showToast;
+
+        async function uploadMedia(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                return data.url;
+            } catch (err) {
+                console.error('Error uploading media:', err);
+                showToast('Error al subir el archivo al servidor.', 'error');
+                return null;
+            }
+        }
+        window.uploadMedia = uploadMedia;
+
+        async function saveToServer() {
+            const menuInput = document.getElementById('menu-config-name');
+            const tbInput = document.getElementById('tb-config-name');
+            
+            // Priority to menu input if menu is open
+            const sm = document.getElementById('save-menu');
+            let configName = "";
+            if (sm && sm.style.display === 'flex') {
+                configName = menuInput.value.trim();
+            } else {
+                configName = tbInput.value.trim();
+            }
+
+            if (!configName) return showToast('Por favor, ingresa un nombre para la configuración.', 'error');
+
+            // Sync both inputs
+            if (menuInput) menuInput.value = configName;
+            if (tbInput) tbInput.value = configName;
+
+            try {
+                const res = await fetch('/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: configName, data: STATE.galleryData })
+                });
+                if (res.ok) {
+                    showToast(`Configuración "${configName}" guardada.`, 'success');
+                    if (sm && sm.style.display === 'flex') {
+                        openSaveMenu();
+                    }
+                }
+                else showToast('Error al guardar en el servidor.', 'error');
+            } catch (err) {
+                console.error('Save error:', err);
+                showToast('Error de conexión con el servidor.', 'error');
+            }
+        }
+        window.saveToServer = saveToServer;
+
+        async function openLoadMenu() {
+            const menu = document.getElementById('load-menu');
+            const list = document.getElementById('config-list');
+            list.innerHTML = 'Cargando...';
+            menu.style.display = 'flex';
+            controls.unlock();
+
+            try {
+                const res = await fetch('/api/configs');
+                const configs = await res.json();
+                list.innerHTML = '';
+                
+                if (configs.length === 0) {
+                    list.innerHTML = '<div style="color:#888; text-align:center;">No hay configuraciones guardadas.</div>';
+                }
+
+                configs.forEach(name => {
+                    const btn = document.createElement('button');
+                    btn.className = 'tb-btn';
+                    btn.style.textAlign = 'left';
+                    btn.innerText = '📄 ' + name;
+                    btn.onclick = () => loadFromServer(name);
+                    list.appendChild(btn);
+                });
+            } catch (err) {
+                console.error('Error loading config list:', err);
+                list.innerHTML = 'Error al cargar lista.';
+            }
+        }
+        window.openLoadMenu = openLoadMenu;
+
+        async function loadFromServer(name) {
+            try {
+                const res = await fetch(`/api/load/${name}`);
+                const data = await res.json();
+                STATE.galleryData = data;
+                buildGrid();
+                buildArtworks();
+                document.getElementById('tb-config-name').value = name;
+                document.getElementById('menu-config-name').value = name;
+                document.getElementById('load-menu').style.display = 'none';
+                document.getElementById('save-menu').style.display = 'none';
+                if (!STATE.taskbarOpen) controls.lock();
+                showToast(`Configuración "${name}" cargada.`, 'success');
+            } catch (err) {
+                console.error('Load error:', err);
+                showToast('No se pudo cargar la configuración.', 'error');
+            }
+        }
+        window.loadFromServer = loadFromServer;
+
+        function downloadZip() {
+            const configName = document.getElementById('tb-config-name').value.trim() || 'galeria_zirkelg';
+            window.location.href = `/api/download-zip/${encodeURIComponent(configName)}`;
+        }
+        window.downloadZip = downloadZip;
+
+        async function saveToServerFromMenu() {
+            await saveToServer();
+        }
+        window.saveToServerFromMenu = saveToServerFromMenu;
+
+        async function openSaveMenu() {
+            const sm = document.getElementById('save-menu');
+            const list = document.getElementById('save-menu-config-list');
+            sm.style.display = 'flex';
+            controls.unlock();
+            
+            const currentName = document.getElementById('tb-config-name')?.value || "";
+            document.getElementById('menu-config-name').value = currentName;
+
+            list.innerHTML = '<span style="color:#888; font-size:0.8rem; text-align:center; width:100%;">Cargando lista...</span>';
+            
+            try {
+                const res = await fetch('/api/configs');
+                const configs = await res.json();
+                list.innerHTML = '';
+                
+                if (configs.length === 0) {
+                    list.innerHTML = '<div style="color:#666; text-align:center; font-size:0.8rem; padding:10px;">No hay configuraciones guardadas.</div>';
+                }
+
+                configs.forEach(name => {
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.alignItems = 'center';
+                    item.style.gap = '8px';
+                    item.style.background = 'rgba(255,255,255,0.05)';
+                    item.style.padding = '8px';
+                    item.style.borderRadius = '4px';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.style.flexGrow = '1';
+                    nameSpan.style.fontSize = '0.9rem';
+                    nameSpan.style.cursor = 'pointer';
+                    nameSpan.innerText = '📄 ' + name;
+                    nameSpan.onclick = () => {
+                        document.getElementById('menu-config-name').value = name;
+                    };
+                    item.appendChild(nameSpan);
+
+                    const btnLoad = document.createElement('button');
+                    btnLoad.className = 'tb-btn';
+                    btnLoad.style.fontSize = '0.7rem';
+                    btnLoad.style.padding = '4px 8px';
+                    btnLoad.innerText = 'Cargar';
+                    btnLoad.onclick = () => loadFromServer(name);
+                    item.appendChild(btnLoad);
+
+                    const btnZip = document.createElement('button');
+                    btnZip.className = 'tb-btn';
+                    btnZip.style.fontSize = '0.7rem';
+                    btnZip.style.padding = '4px 8px';
+                    btnZip.style.background = '#4b2c63';
+                    btnZip.innerText = 'ZIP';
+                    btnZip.onclick = () => {
+                        window.location.href = `/api/download-zip/${encodeURIComponent(name)}`;
+                    };
+                    item.appendChild(btnZip);
+
+                    const btnDel = document.createElement('button');
+                    btnDel.className = 'tb-btn danger';
+                    btnDel.style.fontSize = '0.7rem';
+                    btnDel.style.padding = '4px 8px';
+                    btnDel.innerText = 'Borrar';
+                    btnDel.onclick = () => deleteFromServer(name);
+                    item.appendChild(btnDel);
+
+                    list.appendChild(item);
+                });
+            } catch (err) {
+                console.error('Error loading config list:', err);
+                list.innerHTML = '<span style="color:#f33; font-size:0.8rem;">Error al cargar lista.</span>';
+            }
+        }
+        window.openSaveMenu = openSaveMenu;
+
+        async function importZipFromServer(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showToast('Subiendo y procesando ZIP...', 'info');
+
+            try {
+                const res = await fetch('/api/import-zip', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showToast('Galería importada correctamente.', 'success');
+                    openSaveMenu(); // Refresh list
+                    loadFromServer(data.name); // Load it immediately
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (err) {
+                console.error('Import ZIP error:', err);
+                showToast('Error de conexión al importar ZIP.', 'error');
+            } finally {
+                event.target.value = ''; // Reset input
+            }
+        }
+        window.importZipFromServer = importZipFromServer;
+
+        async function deleteFromServer(name) {
+            if (!confirm(`¿Estás seguro de que deseas eliminar "${name}" del servidor?`)) return;
+            try {
+                const res = await fetch(`/api/delete/${name}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast(`"${name}" eliminado del servidor.`, 'info');
+                    openSaveMenu(); // Refresh list
+                } else {
+                    showToast('Error al eliminar del servidor.', 'error');
+                }
+            } catch (err) {
+                console.error('Delete error:', err);
+                showToast('Error al eliminar del servidor.', 'error');
+            }
+        }
+        window.deleteFromServer = deleteFromServer;
+
+        function downloadZipFromMenu() {
+            const name = document.getElementById('menu-config-name').value.trim();
+            if(!name) return showToast("Ingresa un nombre de configuración para descargar.", 'error');
+            window.location.href = `/api/download-zip/${encodeURIComponent(name)}`;
+        }
+        window.downloadZipFromMenu = downloadZipFromMenu;
+
+        function closeSaveMenu() {
+            document.getElementById('save-menu').style.display = 'none';
+            if(!STATE.taskbarOpen) controls.lock();
+        }
+        window.closeSaveMenu = closeSaveMenu;
+
         window.importGallery = function(event) {
             const file = event.target.files[0];
             if(!file) return;
@@ -2049,9 +2760,9 @@
                     STATE.galleryData = data;
                     buildGrid();
                     buildArtworks();
-                    alert("Galería importada correctamente.");
+                    showToast("Galería importada correctamente.", 'success');
                 } catch (err) {
-                    alert("Error al leer el archivo JSON.");
+                    showToast("Error al leer el archivo JSON.", 'error');
                 }
             };
             reader.readAsText(file);
@@ -2132,6 +2843,7 @@
             if(idx !== -1) {
                 STATE.galleryData.artworks.splice(idx, 1);
                 buildArtworks();
+                showToast("Obra eliminada.", 'info');
             }
             STATE.selectedArtwork = null;
             document.getElementById('btn-delete').disabled = true;

@@ -1,3 +1,10 @@
 node_modules/
+data/configs/*
+data/uploads/*
+!data/configs/.gitkeep
+!data/uploads/.gitkeep
+.gemini/
+tmp/
+.vscode/
 .DS_Store
 *.log

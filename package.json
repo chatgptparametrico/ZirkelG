@@ -1,8 +1,13 @@
 {
   "scripts": {
-    "serve": "npx -y http-server . -p 8080 -o"
+    "serve": "npx -y http-server . -p 8080 -o",
+    "start": "node server.js"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.4",
+    "multer": "^2.1.1",
     "puppeteer": "^24.38.0",
     "three": "^0.183.2"
   }
