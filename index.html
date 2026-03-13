@@ -1620,6 +1620,9 @@
         }
 
         function buildArtworks() {
+            // Cleanup old videos from DOM to prevent memory leaks
+            document.querySelectorAll('video.art-video-element').forEach(v => v.remove());
+
             STATE.meshes.artworks.forEach(a => scene.remove(a));
             STATE.meshes.artworks = [];
             
@@ -1651,15 +1654,22 @@
                         ? art.image.replace('objecturl:video:', '') // ObjectURL (lightweight)
                         : art.image; // legacy base64
                     const video = document.createElement('video');
+                    video.className = 'art-video-element';
                     video.crossOrigin = 'anonymous';
                     video.src = videoSrc;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
                     video.autoplay = true;
-                    // DO NOT append to DOM - keeps keyboard focus on the canvas
-                    video.play().catch(() => {});
+                    video.style.display = 'none'; // Keep it off-screen
+                    document.body.appendChild(video);
+                    
+                    video.play().catch(() => {
+                        // Retry play on interaction if needed, though muted should work
+                    });
+
                     const videoTex = new THREE.VideoTexture(video);
+                    videoTex.colorSpace = THREE.SRGBColorSpace;
                     videoTex.minFilter = THREE.LinearFilter;
                     videoTex.magFilter = THREE.LinearFilter;
                     mat = new THREE.MeshBasicMaterial({ map: videoTex });

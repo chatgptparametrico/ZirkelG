@@ -41,6 +41,7 @@ try {
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(__dirname));
+app.use('/data/uploads', express.static(UPLOADS_DIR));
 
 // Diagnostic endpoint
 app.get('/api/env', (req, res) => {
