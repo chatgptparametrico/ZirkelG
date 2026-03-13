@@ -1679,7 +1679,7 @@
         }
 
         // Helper: Create a TRON-style floating label
-        function createTitleLabel(text) {
+        function createTitleLabel(text, mainColor = '#00ffff', accentColor = '#ff00ff') {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 128;
@@ -1687,13 +1687,13 @@
             
             ctx.clearRect(0,0,512,128);
             
-            // Cyan Glow
-            ctx.shadowColor = '#00ffff';
+            // Text Glow
+            ctx.shadowColor = mainColor;
             ctx.shadowBlur = 15;
             ctx.font = 'bold 44px "Segoe UI", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#00ffff';
+            ctx.fillStyle = mainColor;
             
             // Draw truncated text if too long
             let displayTitle = text || "Sin título";
@@ -1701,9 +1701,9 @@
             
             ctx.fillText(displayTitle.toUpperCase(), 256, 64);
             
-            // Magenta accent line
+            // Accent line
             ctx.shadowBlur = 5;
-            ctx.strokeStyle = '#ff00ff';
+            ctx.strokeStyle = accentColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(100, 100);
@@ -1870,14 +1870,14 @@
             STATE.meshes.roomLabels = [];
 
             // Room 1 Center: x=65, z=12.5
-            const label1 = createTitleLabel(STATE.galleryData.room1Name || "SALA DE ARTE");
+            const label1 = createTitleLabel(STATE.galleryData.room1Name || "SALA DE ARTE", '#ff00ff', '#00ffff');
             label1.scale.set(3, 3, 1); // Make it larger for halls
             label1.position.set(65, 3.2, 12.5);
             scene.add(label1);
             STATE.meshes.roomLabels.push(label1);
 
             // Room 2 Center: x=45, z=35
-            const label2 = createTitleLabel(STATE.galleryData.room2Name || "SALA DE ARQUITECTURA");
+            const label2 = createTitleLabel(STATE.galleryData.room2Name || "SALA DE ARQUITECTURA", '#ff00ff', '#00ffff');
             label2.scale.set(3, 3, 1);
             label2.position.set(45, 3.2, 35);
             scene.add(label2);
