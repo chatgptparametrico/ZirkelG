@@ -1795,7 +1795,7 @@
                 
                 // Add Zirkel logo over the artwork
                 const logo = new THREE.Mesh(logoGeo, zirkelLogoMat);
-                logo.position.set(0, (h / 2) + 0.4, 0.01); // Just above canvas
+                logo.position.set(0, (h / 2) + 0.25, 0.01); // Just above canvas
                 mesh.add(logo);
                 
                 // Light strictly for the painting focus
@@ -1805,7 +1805,7 @@
 
                 // Add floating title label
                 const label = createTitleLabel(art.title);
-                label.position.set(art.x, art.y + (h / 2) + 0.8, art.z);
+                label.position.set(art.x, art.y + (h / 2) + 0.45, art.z);
                 label.visible = STATE.showTitles;
                 scene.add(label);
                 STATE.meshes.titleLabels.push(label);
