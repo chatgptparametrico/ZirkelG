@@ -1202,6 +1202,11 @@
             tourCurve: null
         };
 
+        // Ensure all pre-placed artworks have unique IDs
+        STATE.galleryData.artworks.forEach((art, i) => {
+            if (!art.id) art.id = 'art_init_' + i;
+        });
+
         window.onload = () => {
             const tbFile = document.getElementById('tb-file');
             if (tbFile) {
@@ -2121,7 +2126,7 @@
                     // Pass true to check children (the frame, the image, the logo)
                     const intersects = rc.intersectObjects(STATE.meshes.artworks, true);
                     
-                    if(intersects.length > 0 && intersects[0].distance < 4) {
+                    if(intersects.length > 0 && intersects[0].distance < 8) {
                         // The intersection might be the child (frame/logo) or the parent plane.
                         let obj = intersects[0].object;
                         let art = null;
@@ -2228,11 +2233,34 @@
             if(!controls.isLocked) return;
             // Raycast strictly forward
             raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-            const intersects = raycaster.intersectObjects(STATE.meshes.artworks, false);
+            // Pass true to check children (frame, logo, etc.)
+            const intersects = raycaster.intersectObjects(STATE.meshes.artworks, true);
             
             if(intersects.length > 0 && intersects[0].distance < 4) {
-                const art = intersects[0].object.userData.metadata;
+                // Climb the tree to find the node with metadata
+                let obj = intersects[0].object;
+                let art = null;
+                while(obj) {
+                    if (obj.userData && obj.userData.metadata) {
+                        art = obj.userData.metadata;
+                        break;
+                    }
+                    obj = obj.parent;
+                }
+
+                if (!art) return;
+
+                // Sync Taskbar (for deletion and editing reference)
+                STATE.selectedArtwork = art.id;
+                document.getElementById('tb-title').value = art.title;
+                document.getElementById('tb-author').value = art.author || '';
+                document.getElementById('tb-imgUrl').value = art.image;
+                document.getElementById('tb-desc').value = art.description || '';
+                document.getElementById('tb-aspect').value = art.aspect || 'vertical';
+                document.getElementById('tb-link').value = art.linkUrl || '';
+                document.getElementById('btn-delete').disabled = false;
                 
+                // Show Info Panel
                 document.getElementById('info-title').innerText = art.title;
                 document.getElementById('info-desc').innerText = art.description;
                 document.getElementById('info-author').innerText = art.author || 'Autor desconocido';
