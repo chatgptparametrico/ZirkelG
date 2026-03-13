@@ -238,8 +238,22 @@ app.get('/api/download-zip/:name', async (req, res) => {
         // Add used media files
         for (const fileName of usedFiles) {
             const filePath = path.join(UPLOADS_DIR, fileName);
+            
             if (await fs.pathExists(filePath)) {
                 archive.file(filePath, { name: `media/${fileName}` });
+            } else if (HAS_BLOB) {
+                // Try to find it in Vercel Blob
+                try {
+                    const { blobs } = await list({ prefix: `media/${fileName}` });
+                    if (blobs.length > 0) {
+                        const response = await fetch(blobs[0].url);
+                        const buffer = Buffer.from(await response.arrayBuffer());
+                        archive.append(buffer, { name: `media/${fileName}` });
+                        console.log(`[ZIP] Fetched from Blob: media/${fileName}`);
+                    }
+                } catch (err) {
+                    console.warn(`[ZIP] Failed to fetch media from Blob: ${fileName}`, err.message);
+                }
             } else {
                 console.warn(`[ZIP] Media file missing: ${filePath}`);
             }
@@ -281,12 +295,21 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
             throw new Error('El archivo ZIP no contiene gallery_config.json');
         }
 
-        // Rename config based on ZIP name (removing extension)
         const baseName = path.parse(req.file.originalname).name;
         const newConfigPath = path.join(CONFIGS_DIR, `${baseName}.json`);
         
-        await fs.move(incomingJsonPath, newConfigPath, { overwrite: true });
-        console.log(`[IMPORT] Saved config as: ${baseName}.json`);
+        // Save locally/tmp
+        const configData = await fs.readJson(incomingJsonPath);
+        await fs.writeJson(newConfigPath, configData, { spaces: 2 });
+
+        if (HAS_BLOB) {
+            await put(`configs/${baseName}.json`, JSON.stringify(configData), {
+                access: 'public',
+                contentType: 'application/json',
+                addRandomSuffix: false
+            });
+            console.log('[SUPABASE] Import: Saved config to Blob:', baseName);
+        }
 
         // 2. Process media
         const incomingMediaDir = path.join(extractPath, 'media');
@@ -295,9 +318,19 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
             for (const file of files) {
                 const src = path.join(incomingMediaDir, file);
                 const dest = path.join(UPLOADS_DIR, file);
-                await fs.move(src, dest, { overwrite: true });
+                
+                // Copy locally
+                await fs.copy(src, dest, { overwrite: true });
+
+                if (HAS_BLOB) {
+                    const fileBuffer = await fs.readFile(src);
+                    await put(`media/${file}`, fileBuffer, {
+                        access: 'public',
+                        addRandomSuffix: false // Avoid changing filenames from the imported config
+                    });
+                }
             }
-            console.log(`[IMPORT] Extracted ${files.length} media files.`);
+            console.log(`[IMPORT] Extracted and synced ${files.length} media files.`);
         }
 
         res.json({ message: 'Galería importada correctamente desde ZIP.', name: baseName });
