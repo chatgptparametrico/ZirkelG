@@ -10,16 +10,48 @@ const execPromise = util.promisify(exec);
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Supabase Setup
+const { createClient } = require('@supabase/supabase-js');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+let supabase = null;
+
+if (SUPABASE_URL && SUPABASE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('[SERVER] Supabase client initialized.');
+}
+
+// Detection for Vercel / serverless environments
+const IS_VERCEL = process.env.VERCEL || process.env.NOW_REGION;
+const BASE_DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
+
 // Ensure data directories exist
-const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
-const CONFIGS_DIR = path.join(__dirname, 'data', 'configs');
-const TEMP_DIR = path.join(__dirname, 'data', 'temp_extract');
-fs.ensureDirSync(UPLOADS_DIR);
-fs.ensureDirSync(CONFIGS_DIR);
-fs.ensureDirSync(TEMP_DIR);
+const UPLOADS_DIR = path.join(BASE_DATA_DIR, 'data', 'uploads');
+const CONFIGS_DIR = path.join(BASE_DATA_DIR, 'data', 'configs');
+const TEMP_DIR = path.join(BASE_DATA_DIR, 'data', 'temp_extract');
+
+// Only run ensureDirSync if we are NOT on Vercel or if it's the /tmp dir
+try {
+    fs.ensureDirSync(UPLOADS_DIR);
+    fs.ensureDirSync(CONFIGS_DIR);
+    fs.ensureDirSync(TEMP_DIR);
+} catch (e) {
+    console.warn('[SERVER] Could not create folders (likely read-only FS):', e.message);
+}
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(__dirname));
+
+// Diagnostic endpoint
+app.get('/api/env', (req, res) => {
+    res.json({
+        isVercel: !!IS_VERCEL,
+        uploadsDir: UPLOADS_DIR,
+        configsDir: CONFIGS_DIR,
+        nodeVersion: process.version,
+        platform: process.platform
+    });
+});
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -34,9 +66,38 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // API: Upload Media
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
-    const fileUrl = `/data/uploads/${req.file.filename}`;
+    
+    // Fallback URL
+    let fileUrl = `/data/uploads/${req.file.filename}`;
+
+    if (supabase) {
+        try {
+            const fileName = req.file.filename;
+            const fileBuffer = await fs.readFile(req.file.path);
+            const { data, error } = await supabase.storage
+                .from('media')
+                .upload(fileName, fileBuffer, {
+                    contentType: req.file.mimetype,
+                    upsert: true
+                });
+
+            if (error) throw error;
+            
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+                .from('media')
+                .getPublicUrl(fileName);
+            
+            fileUrl = publicUrlData.publicUrl;
+            console.log('[SUPABASE] Uploaded media:', fileUrl);
+        } catch (err) {
+            console.error('[SUPABASE] Upload error:', err.message);
+            // Continue with local fileUrl as fallback
+        }
+    }
+
     res.json({ url: fileUrl });
 });
 
@@ -47,9 +108,20 @@ app.post('/api/save', async (req, res) => {
     
     const filePath = path.join(CONFIGS_DIR, `${name}.json`);
     try {
+        // Save locally always
         await fs.writeJson(filePath, data, { spaces: 2 });
+
+        if (supabase) {
+            const { error } = await supabase
+                .from('galleries')
+                .upsert({ name, data });
+            if (error) throw error;
+            console.log('[SUPABASE] Saved config:', name);
+        }
+
         res.json({ message: 'Saved successfully' });
     } catch (err) {
+        console.error('[SERVER] Save error:', err.message);
         res.status(500).send('Error saving config.');
     }
 });
@@ -57,21 +129,53 @@ app.post('/api/save', async (req, res) => {
 // API: Get Config List
 app.get('/api/configs', async (req, res) => {
     try {
-        const files = await fs.readdir(CONFIGS_DIR);
-        const configs = files.filter(f => f.endsWith('.json')).map(f => f.replace('.json', ''));
+        let configs = [];
+        
+        // Try Supabase first if available
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('galleries')
+                .select('name');
+            if (!error && data) {
+                configs = data.map(item => item.name);
+            }
+        }
+
+        // If no configs from Supabase, fall back to local
+        if (configs.length === 0) {
+            const files = await fs.readdir(CONFIGS_DIR);
+            configs = files.filter(f => f.endsWith('.json')).map(f => f.replace('.json', ''));
+        }
+
         res.json(configs);
     } catch (err) {
+        console.error('[SERVER] Read configs error:', err.message);
         res.status(500).send('Error reading configs.');
     }
 });
 
 // API: Load Config
 app.get('/api/load/:name', async (req, res) => {
-    const filePath = path.join(CONFIGS_DIR, `${req.params.name}.json`);
+    const name = req.params.name;
     try {
-        const data = await fs.readJson(filePath);
-        res.json(data);
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('galleries')
+                .select('data')
+                .eq('name', name)
+                .single();
+            
+            if (!error && data) {
+                return res.json(data.data);
+            }
+        }
+
+        // Fallback to local
+        const filePath = path.join(CONFIGS_DIR, `${name}.json`);
+        const localData = await fs.readJson(filePath);
+        res.json(localData);
     } catch (err) {
+        console.error('[SERVER] Load error:', err.message);
         res.status(404).send('Config not found.');
     }
 });
