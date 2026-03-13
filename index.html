@@ -297,6 +297,20 @@
             </div>
         </div>
 
+        <!-- New Row for Room Names -->
+        <div class="tb-row" style="background: rgba(0,255,255,0.05); padding: 8px 15px; border-radius: 6px; border: 1px dashed rgba(0,255,255,0.2);">
+            <div style="display:flex; align-items:center; gap:20px; width:100%;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">NOMBRE SALA 1:</span>
+                    <input type="text" id="tb-room1-name" placeholder="Título Sala 1" class="tb-input" style="background:#000;">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">NOMBRE SALA 2:</span>
+                    <input type="text" id="tb-room2-name" placeholder="Título Sala 2" class="tb-input" style="background:#000;">
+                </div>
+            </div>
+        </div>
+
         <!-- Row 3: Full Width Description -->
         <div class="tb-row">
             <textarea id="tb-desc" placeholder="Escribe aquí la descripción detallada de la obra..." class="tb-input" style="height: 60px; resize: none; min-height: 60px; width: 100%; max-width:none; padding: 10px; font-family: inherit;"></textarea>
@@ -405,6 +419,8 @@
                     [1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0],
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
                 ],
+                room1Name: "SALA DE ARTE",
+                room2Name: "SALA DE ARQUITECTURA",
                 artworks: [
     {
         "title": "El Partenón",
@@ -1216,7 +1232,8 @@
                 walls: [],
                 artworks: [],
                 floatingShapes: [],
-                titleLabels: []
+                titleLabels: [],
+                roomLabels: []
             },
             showTitles: true,
             
@@ -1845,6 +1862,28 @@
             });
         }
 
+        function buildRoomLabels() {
+            // Clean old
+            if (STATE.meshes.roomLabels) {
+                STATE.meshes.roomLabels.forEach(l => scene.remove(l));
+            }
+            STATE.meshes.roomLabels = [];
+
+            // Room 1 Center: x=65, z=12.5
+            const label1 = createTitleLabel(STATE.galleryData.room1Name || "SALA DE ARTE");
+            label1.scale.set(3, 3, 1); // Make it larger for halls
+            label1.position.set(65, 3.2, 12.5);
+            scene.add(label1);
+            STATE.meshes.roomLabels.push(label1);
+
+            // Room 2 Center: x=45, z=35
+            const label2 = createTitleLabel(STATE.galleryData.room2Name || "SALA DE ARQUITECTURA");
+            label2.scale.set(3, 3, 1);
+            label2.position.set(45, 3.2, 35);
+            scene.add(label2);
+            STATE.meshes.roomLabels.push(label2);
+        }
+
         window.toggleTitles = function(visible) {
             STATE.showTitles = visible;
             STATE.meshes.titleLabels.forEach(l => {
@@ -2209,6 +2248,7 @@
         // ==========================================
         buildGrid();
         buildPortal();
+        buildRoomLabels();
         
         // Spawn Player OUTSIDE the gallery, east of the portal, facing West
         camera.position.set(19 * CONFIG.tileSize, CONFIG.cameraHeight, 9 * CONFIG.tileSize);
@@ -2260,31 +2300,36 @@
                 }
                 // Taskbar Toggle
                 if(e.code === 'KeyH') {
-                STATE.taskbarOpen = !STATE.taskbarOpen;
-                const tb = document.getElementById('taskbar');
-                if(STATE.taskbarOpen) {
-                    controls.unlock();
+                    STATE.taskbarOpen = !STATE.taskbarOpen;
+                    const tb = document.getElementById('taskbar');
                     
-                    // Raycast to check if we are aiming at an existing artwork
-                    const rc = new THREE.Raycaster();
-                    rc.setFromCamera(new THREE.Vector2(0,0), camera);
-                    // Pass true to check children (the frame, the image, the logo)
-                    const intersects = rc.intersectObjects(STATE.meshes.artworks, true);
-                    
-                    if(intersects.length > 0 && intersects[0].distance < 8) {
-                        // The intersection might be the child (frame/logo) or the parent plane.
-                        let obj = intersects[0].object;
+                    if(STATE.taskbarOpen) {
+                        controls.unlock();
+                        
+                        const rc = new THREE.Raycaster();
+                        rc.setFromCamera(new THREE.Vector2(0,0), camera);
+                        const intersects = rc.intersectObjects(STATE.meshes.artworks, true);
+                        
                         let art = null;
-                        
-                        // Climb the tree to find the node with metadata
-                        while(obj) {
-                            if (obj.userData && obj.userData.metadata) {
-                                art = obj.userData.metadata;
-                                break;
+                        if(intersects.length > 0 && intersects[0].distance < 8) {
+                            let obj = intersects[0].object;
+                            while(obj) {
+                                if (obj.userData && obj.userData.metadata) {
+                                    art = obj.userData.metadata;
+                                    break;
+                                }
+                                obj = obj.parent;
                             }
-                            obj = obj.parent;
                         }
-                        
+
+                        // Populate Room Names in UI
+                        if (document.getElementById('tb-room1-name')) {
+                            document.getElementById('tb-room1-name').value = STATE.galleryData.room1Name || "";
+                        }
+                        if (document.getElementById('tb-room2-name')) {
+                            document.getElementById('tb-room2-name').value = STATE.galleryData.room2Name || "";
+                        }
+
                         if (art) {
                             STATE.selectedArtwork = art.id;
                             document.getElementById('tb-title').value = art.title;
@@ -2304,24 +2349,14 @@
                             document.getElementById('tb-link').value = '';
                             document.getElementById('btn-delete').disabled = true;
                         }
+                        
+                        tb.classList.add('active');
                     } else {
-                        STATE.selectedArtwork = null;
-                        document.getElementById('tb-title').value = '';
-                        document.getElementById('tb-author').value = '';
-                        document.getElementById('tb-imgUrl').value = '';
-                        document.getElementById('tb-desc').value = '';
-                        document.getElementById('tb-aspect').value = 'vertical';
-                        document.getElementById('tb-link').value = '';
-                        document.getElementById('btn-delete').disabled = true;
+                        tb.classList.remove('active');
+                        controls.lock();
                     }
-                    
-                    tb.classList.add('active');
-                } else {
-                    tb.classList.remove('active');
-                    controls.lock(); // Re-enter directly, no grey screen needed
+                    return;
                 }
-                return;
-            }
             if(STATE.taskbarOpen || document.getElementById('info-panel').classList.contains('active')) return;
 
             switch(e.code) {
@@ -2658,6 +2693,13 @@
 
             // Billboarding for Title Labels - REMOVED: Now they follow mesh plane
 
+            // Rotate Room Labels
+            if (STATE.meshes.roomLabels) {
+                STATE.meshes.roomLabels.forEach(l => {
+                    l.rotation.y += 1.0 * delta;
+                });
+            }
+
             // Minimap Update
             updateMinimap();
 
@@ -2962,6 +3004,11 @@
             const desc = document.getElementById('tb-desc').value || "Nueva instalación en la galería.";
             const aspect = document.getElementById('tb-aspect').value;
             const linkUrl = document.getElementById('tb-link').value;
+            
+            // Save global room names
+            STATE.galleryData.room1Name = document.getElementById('tb-room1-name').value;
+            STATE.galleryData.room2Name = document.getElementById('tb-room2-name').value;
+            buildRoomLabels(); // Re-render labels with new names
             
             // URL is populated automatically by the FileReader when a file is uploaded
 
