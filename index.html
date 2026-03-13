@@ -2339,7 +2339,13 @@
         function closeTaskbar() {
             STATE.taskbarOpen = false;
             document.getElementById('taskbar').classList.remove('active');
-            controls.lock(); // Re-enter pointer lock directly — no grey screen
+            
+            // Safeguard: Reset camera rotation artifacts and ensure it's vertical
+            // Sometimes mouse movements while unlocked accumulate in controls/camera
+            camera.rotation.z = 0; 
+            
+            controls.lock();
+            console.log("[UI] Taskbar closed, camera stabilized.");
         }
         window.closeTaskbar = closeTaskbar;
 
@@ -2788,18 +2794,23 @@
         window.importZipFromServer = importZipFromServer;
 
         async function deleteFromServer(name) {
+            if (!name) return showToast('No se especificó un nombre para borrar.', 'error');
             if (!confirm(`¿Estás seguro de que deseas eliminar "${name}" del servidor?`)) return;
+            
+            console.log('[API] Requesting delete for:', name);
             try {
                 const res = await fetch(`/api/delete/${name}`, { method: 'DELETE' });
                 if (res.ok) {
                     showToast(`"${name}" eliminado del servidor.`, 'info');
                     openSaveMenu(); // Refresh list
                 } else {
-                    showToast('Error al eliminar del servidor.', 'error');
+                    const txt = await res.text();
+                    console.error('[API] Delete failed:', txt);
+                    showToast('Error al eliminar: ' + txt, 'error');
                 }
             } catch (err) {
-                console.error('Delete error:', err);
-                showToast('Error al eliminar del servidor.', 'error');
+                console.error('Delete connection error:', err);
+                showToast('Error de conexión al eliminar del servidor.', 'error');
             }
         }
         window.deleteFromServer = deleteFromServer;
@@ -2904,14 +2915,24 @@
         };
 
         window.deleteArtwork = function() {
-            if(!STATE.selectedArtwork) return;
+            console.log("[UI] Delete requested for artwork ID:", STATE.selectedArtwork);
+            if(!STATE.selectedArtwork) {
+                showToast("No hay ninguna obra seleccionada para borrar.", "warning");
+                return;
+            }
             if(!confirm('¿Eliminar esta obra de la galería?')) return;
+            
             const idx = STATE.galleryData.artworks.findIndex(a => a.id === STATE.selectedArtwork);
             if(idx !== -1) {
                 STATE.galleryData.artworks.splice(idx, 1);
                 buildArtworks();
-                showToast("Obra eliminada.", 'info');
+                showToast("Obra eliminada de la memoria local.", 'info');
+            } else {
+                console.error("[UI] Could not find artwork with ID:", STATE.selectedArtwork);
+                showToast("Error: No se encontró la obra en los datos.", "error");
             }
+            
+            // Clear selection
             STATE.selectedArtwork = null;
             document.getElementById('btn-delete').disabled = true;
             document.getElementById('tb-title').value = '';

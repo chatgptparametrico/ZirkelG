@@ -226,13 +226,15 @@ app.delete('/api/delete/:name', async (req, res) => {
         }
 
         if (deleted) {
+            console.log('[SERVER] Delete successful for:', name);
             res.json({ message: 'Deleted successfully' });
         } else {
-            res.status(404).send('Config not found.');
+            console.warn('[SERVER] Delete failed: No match found for', name);
+            res.status(404).send('Configuration non-existent or already deleted.');
         }
     } catch (err) {
-        console.error('[SERVER] Delete error:', err.message);
-        res.status(500).send('Error deleting config.');
+        console.error('[SERVER] Delete exception:', err.message);
+        res.status(500).send('Error deleting config: ' + err.message);
     }
 });
 
