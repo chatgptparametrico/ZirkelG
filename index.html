@@ -260,22 +260,28 @@
         </select>
         <input type="text" id="tb-link" placeholder="Enlace Externo (URL)" class="tb-input" style="max-width:200px;">
         <input type="hidden" id="tb-imgUrl">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 5px;">
+        <div style="display:flex; align-items:center; gap:10px;">
             <label style="font-size:0.75rem; color:#aaa;">Sube tu propia obra (.png, .jpg):</label>
-            <input type="file" id="tb-file" accept="image/*,video/mp4,video/webm,video/ogg,image/gif" style="font-size: 0.75rem; color:#ccc;">
+            <input type="file" id="tb-file" accept="image/*,video/mp4,video/webm,video/ogg,image/gif" style="font-size: 0.75rem; color:#ccc; max-width: 180px;">
+            
+            <div style="border-left:1px solid #444; height:20px; margin:0 5px;"></div>
+            
+            <label style="display:flex; align-items:center; gap:5px; color:#0ff; font-size:0.75rem; cursor:pointer; user-select:none;">
+                <input type="checkbox" id="toggle-titles" checked onchange="window.toggleTitles(this.checked)" style="accent-color:#0ff;">
+                <span>TÍTULOS</span>
+            </label>
         </div>
-        <textarea id="tb-desc" placeholder="Descripción extendida de la obra..." class="tb-input" style="height: 35px; resize: vertical; min-height: 35px; max-height: 150px;"></textarea>
+        <textarea id="tb-desc" placeholder="Descripción..." class="tb-input" style="height: 30px; resize: none; min-height: 30px; flex-grow: 1; max-width: 300px; padding: 5px;"></textarea>
         
         <div style="border-left:1px solid #444; height:30px; margin:0 5px;"></div>
-        <input type="text" id="tb-config-name" placeholder="Nombre Galería" class="tb-input" style="max-width:150px;">
+        <input type="text" id="tb-config-name" placeholder="Nombre Galería" class="tb-input" style="max-width:120px;">
         <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva Obra</button>
         <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>Eliminar Obra</button>
+        
         <div style="flex-grow:1;"></div>
-        <button class="tb-btn" onclick="document.getElementById('import-input').click()">Importar JSON</button>
-        <input type="file" id="import-input" accept=".json" onchange="importGallery(event)">
         <input type="file" id="zip-import-input" accept=".zip" style="display:none;" onchange="importZipFromServer(event)">
 
-        <div style="flex-grow:1;"></div>
+        <div style="border-left:1px solid #444; height:30px; margin:0 5px;"></div>
         <button class="tb-btn" onclick="closeTaskbar()" style="background:#444; border:1px solid #888; margin-left:8px; font-size:1rem; padding: 4px 12px;">✕ Cerrar</button>
     </div>
 
@@ -315,6 +321,10 @@
             </div>
         </div>
         
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <button class="tb-btn danger" onclick="window.clearGallery()" style="flex:1; font-weight:bold;">🗑 BORRAR TODA LA GALERÍA</button>
+        </div>
+
         <p style="font-size:0.75rem; color:#666; font-style:italic; margin-bottom:15px;">Tip: El archivo ZIP incluye el JSON y todos los archivos multimedia subidos.</p>
         
         <button class="tb-btn" onclick="closeSaveMenu()" style="background:#333; padding:12px;">✕ CERRAR MENÚ</button>
@@ -1178,8 +1188,10 @@
             meshes: {
                 walls: [],
                 artworks: [],
-                floatingShapes: []
+                floatingShapes: [],
+                titleLabels: []
             },
+            showTitles: true,
             
             // Input
             moveForward: false,
@@ -1267,6 +1279,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace; // Fix gamma/washed out look
         container.appendChild(renderer.domElement);
         
         const controls = new PointerLockControls(camera, document.body);
@@ -1332,6 +1345,7 @@
             tex.wrapS = THREE.RepeatWrapping;
             tex.wrapT = THREE.RepeatWrapping;
             tex.repeat.set(12, 12);
+            tex.colorSpace = THREE.SRGBColorSpace; // Ensure SRGB
             return tex;
         }
 
@@ -1414,11 +1428,11 @@
             const benchMat = new THREE.MeshStandardMaterial({color: 0x443d38, roughness: 0.8}); // brown leather/wood
             
             const panelGeo = new THREE.PlaneGeometry(CONFIG.tileSize - 0.5, CONFIG.tileSize - 0.5);
-            const panelMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // Solid glowing white ceiling panel
+            const panelMat = new THREE.MeshBasicMaterial({color: 0xffffff, colorSpace: THREE.SRGBColorSpace}); // Solid glowing white ceiling panel
 
             // Linear corridor lights (thin strips) - TRON Cyan Neon
             const linearLightGeo = new THREE.BoxGeometry(0.2, 0.05, CONFIG.tileSize * 0.8);
-            const linearLightMat = new THREE.MeshBasicMaterial({color: 0x00ffff});
+            const linearLightMat = new THREE.MeshBasicMaterial({color: 0x00ffff, colorSpace: THREE.SRGBColorSpace});
 
             // Walls
             const wallGeo = new THREE.BoxGeometry(CONFIG.tileSize, CONFIG.wallHeight, CONFIG.tileSize);
@@ -1608,6 +1622,7 @@
         // ARTWORK GENERATION
         // ==========================================
         const zirkelLogoTex = new THREE.TextureLoader().load('zirkel-logo.png');
+        zirkelLogoTex.colorSpace = THREE.SRGBColorSpace; // Ensure SRGB
         const zirkelLogoMat = new THREE.MeshBasicMaterial({ map: zirkelLogoTex, transparent: true });
 
         function isMediaVideo(url) {
@@ -1619,12 +1634,65 @@
             return videoExtensions.some(ext => cleanUrl.endsWith(ext));
         }
 
+        // Helper: Create a TRON-style floating label
+        function createTitleLabel(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0,0,512,128);
+            
+            // Cyan Glow
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.font = 'bold 44px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#00ffff';
+            
+            // Draw truncated text if too long
+            let displayTitle = text || "Sin título";
+            if (displayTitle.length > 25) displayTitle = displayTitle.substring(0, 22) + "...";
+            
+            ctx.fillText(displayTitle.toUpperCase(), 256, 64);
+            
+            // Magenta accent line
+            ctx.shadowBlur = 5;
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(100, 100);
+            ctx.lineTo(412, 100);
+            ctx.stroke();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.colorSpace = THREE.SRGBColorSpace; // Ensure SRGB
+            const mat = new THREE.MeshBasicMaterial({ 
+                map: tex, 
+                transparent: true, 
+                side: THREE.DoubleSide,
+                depthTest: true,
+                depthWrite: false
+            });
+            const geo = new THREE.PlaneGeometry(2, 0.5);
+            const mesh = new THREE.Mesh(geo, mat);
+            return mesh;
+        }
+
         function buildArtworks() {
             // Cleanup old videos from DOM to prevent memory leaks
             document.querySelectorAll('video.art-video-element').forEach(v => v.remove());
 
-            STATE.meshes.artworks.forEach(a => scene.remove(a));
+            // Clear existing artworks and their associated labels from the scene
+            STATE.meshes.artworks.forEach(obj => {
+                if (obj.userData.labels) {
+                    obj.userData.labels.forEach(l => scene.remove(l));
+                }
+                scene.remove(obj);
+            });
             STATE.meshes.artworks = [];
+            STATE.meshes.titleLabels = []; // Re-initialize title labels array
             
             const loader = new THREE.TextureLoader();
             loader.setCrossOrigin('anonymous');
@@ -1699,6 +1767,7 @@
                         };
                         drawGif();
                     };
+                    gifTex.colorSpace = THREE.SRGBColorSpace;
                     mat = new THREE.MeshBasicMaterial({ map: gifTex });
                     
                 } else {
@@ -1708,6 +1777,8 @@
                         imgUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(imgUrl);
                     }
                     const tex = loader.load(imgUrl);
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                    tex.needsUpdate = true; // Force update
                     mat = new THREE.MeshBasicMaterial({ map: tex });
                 }
                 const mesh = new THREE.Mesh(artGeo, mat);
@@ -1732,10 +1803,28 @@
                 artLight.position.set(0, 1, 1);
                 mesh.add(artLight);
 
+                // Add floating title label
+                const label = createTitleLabel(art.title);
+                label.position.set(art.x, art.y + (h / 2) + 0.8, art.z);
+                label.visible = STATE.showTitles;
+                scene.add(label);
+                STATE.meshes.titleLabels.push(label);
+                
+                // Track labels on mesh for cleanup
+                mesh.userData.labels = [label];
+
                 scene.add(mesh);
                 STATE.meshes.artworks.push(mesh);
             });
         }
+
+        window.toggleTitles = function(visible) {
+            STATE.showTitles = visible;
+            STATE.meshes.titleLabels.forEach(l => {
+                l.visible = visible;
+            });
+            console.log("[UI] Titles toggled:", visible);
+        };
 
         // ==========================================
         // MONUMENTAL PORTAL (Egyptian Temple Style)
@@ -1945,6 +2034,7 @@
             
             const textTexture = new THREE.CanvasTexture(textCanvas);
             textTexture.needsUpdate = true;
+            textTexture.colorSpace = THREE.SRGBColorSpace; // Ensure SRGB
             
             const logoWidth = 10;
             const logoHeight = logoWidth * (256 / 1024);
@@ -2349,10 +2439,17 @@
         }
         window.closeTaskbar = closeTaskbar;
 
+        window.clearGallery = function() {
+            if(!confirm('¿Estás seguro de que deseas eliminar TODAS las obras de la galería? Esta acción no se puede deshacer en la sesión actual.')) return;
+            STATE.galleryData.artworks = [];
+            buildArtworks();
+            showToast("Galería vaciada completamente.", 'info');
+            closeSaveMenu();
+        };
+
         // ==========================================
         // COLLISION CHECK
         // ==========================================
-        // Predicts movement and checks against grid
         function checkCollisions(deltaPosition) {
             const nextPos = camera.position.clone().add(deltaPosition);
             
@@ -2531,6 +2628,13 @@
                 shape.rotation.x += 0.5 * delta;
                 shape.rotation.y += 0.8 * delta;
             });
+
+            // Billboarding for Title Labels
+            if (STATE.showTitles) {
+                STATE.meshes.titleLabels.forEach(label => {
+                    label.lookAt(camera.position);
+                });
+            }
 
             // Minimap Update
             updateMinimap();
@@ -2828,23 +2932,6 @@
         }
         window.closeSaveMenu = closeSaveMenu;
 
-        window.importGallery = function(event) {
-            const file = event.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    STATE.galleryData = data;
-                    buildGrid();
-                    buildArtworks();
-                    showToast("Galería importada correctamente.", 'success');
-                } catch (err) {
-                    showToast("Error al leer el archivo JSON.", 'error');
-                }
-            };
-            reader.readAsText(file);
-        };
 
         window.saveArtwork = function() {
             const title = document.getElementById('tb-title').value || "Sin título";
