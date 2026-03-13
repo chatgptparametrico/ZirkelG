@@ -113,32 +113,43 @@
             bottom: 0;
             left: 0;
             width: 100vw;
-            background: rgba(20,20,20,0.95);
-            border-top: 1px solid #333;
-            padding: 15px 20px;
+            background: rgba(15,15,15,0.98);
+            border-top: 1px solid #0ff;
+            padding: 20px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 15px;
             z-index: 60;
             pointer-events: auto;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-sizing: border-box;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
         }
         #taskbar.active { transform: translateY(0); }
+        .tb-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
         .tb-btn {
-            background: #333; color: white; border: 1px solid #555; padding: 8px 16px;
-            border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: background 0.2s;
+            background: #333; color: white; border: 1px solid #555; padding: 10px 20px;
+            border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
+            text-transform: uppercase; letter-spacing: 1px;
+            min-width: 160px; text-align: center;
         }
-        .tb-btn:hover { background: #555; }
-        .tb-btn.primary { background: #08f; border-color: #0af; }
-        .tb-btn.primary:hover { background: #0af; }
+        .tb-btn:hover { background: #444; border-color: #888; transform: translateY(-1px); }
+        .tb-btn.primary { background: #08f; border-color: #0af; box-shadow: 0 0 10px rgba(0,128,255,0.3); }
+        .tb-btn.primary:hover { background: #0af; box-shadow: 0 0 15px rgba(0,255,255,0.5); }
         .tb-btn.danger { background: #b22; border-color: #f33; }
-        .tb-btn.danger:hover { background: #f33; }
+        .tb-btn.danger:hover { background: #f33; box-shadow: 0 0 15px rgba(255,0,0,0.4); }
         .tb-input {
-            background: #222; color: white; border: 1px solid #444; padding: 6px 10px;
-            border-radius: 4px; font-size: 0.9rem; flex-grow: 1; max-width: 250px;
+            background: #111; color: white; border: 1px solid #444; padding: 8px 12px;
+            border-radius: 4px; font-size: 0.9rem; flex-grow: 1;
         }
+        .tb-input:focus { border-color: #0ff; outline: none; box-shadow: 0 0 5px rgba(0,255,255,0.2); }
 
         /* File Input */
         #import-input { display: none; }
@@ -248,41 +259,57 @@
         </div>
     </div>
 
-    <!-- Edit Taskbar -->
+    <!-- Edi    <!-- Edit Taskbar -->
     <div id="taskbar">
-        <span style="font-weight:bold; color:#888; font-size: 0.8rem; white-space: nowrap;">GESTOR DE GALERÍA</span>
-        <input type="text" id="tb-title" placeholder="Título" class="tb-input">
-        <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width:150px;">
-        <select id="tb-aspect" class="tb-input" style="margin-right: 5px;">
-            <option value="vertical">Vertical (2:3)</option>
-            <option value="4:3">Horizontal (4:3)</option>
-            <option value="16:9">Horizontal (16:9)</option>
-        </select>
-        <input type="text" id="tb-link" placeholder="Enlace Externo (URL)" class="tb-input" style="max-width:200px;">
-        <input type="hidden" id="tb-imgUrl">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <label style="font-size:0.75rem; color:#aaa;">Sube tu propia obra (.png, .jpg):</label>
-            <input type="file" id="tb-file" accept="image/*,video/mp4,video/webm,video/ogg,image/gif" style="font-size: 0.75rem; color:#ccc; max-width: 180px;">
-            
-            <div style="border-left:1px solid #444; height:20px; margin:0 5px;"></div>
-            
-            <label style="display:flex; align-items:center; gap:5px; color:#0ff; font-size:0.75rem; cursor:pointer; user-select:none;">
-                <input type="checkbox" id="toggle-titles" checked onchange="window.toggleTitles(this.checked)" style="accent-color:#0ff;">
-                <span>TÍTULOS</span>
-            </label>
+        <!-- Row 1: Header & Main Inputs -->
+        <div class="tb-row">
+            <span style="font-weight:bold; color:#0ff; font-size: 0.9rem; white-space: nowrap; text-shadow: 0 0 10px rgba(0,255,255,0.5);">GESTOR DE GALERÍA</span>
+            <input type="text" id="tb-title" placeholder="Título de la obra" class="tb-input" style="max-width: none;">
+            <input type="text" id="tb-author" placeholder="Autor" class="tb-input" style="max-width: 200px;">
+            <select id="tb-aspect" class="tb-input" style="max-width: 180px;">
+                <option value="vertical">Vertical (2:3)</option>
+                <option value="4:3">Horizontal (4:3)</option>
+                <option value="16:9">Horizontal (16:9)</option>
+            </select>
+            <input type="text" id="tb-link" placeholder="Enlace Externo (URL)" class="tb-input" style="max-width: 250px;">
+            <input type="hidden" id="tb-imgUrl">
         </div>
-        <textarea id="tb-desc" placeholder="Descripción..." class="tb-input" style="height: 30px; resize: none; min-height: 30px; flex-grow: 1; max-width: 300px; padding: 5px;"></textarea>
-        
-        <div style="border-left:1px solid #444; height:30px; margin:0 5px;"></div>
-        <input type="text" id="tb-config-name" placeholder="Nombre Galería" class="tb-input" style="max-width:120px;">
-        <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva Obra</button>
-        <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>Eliminar Obra</button>
-        
-        <div style="flex-grow:1;"></div>
-        <input type="file" id="zip-import-input" accept=".zip" style="display:none;" onchange="importZipFromServer(event)">
 
-        <div style="border-left:1px solid #444; height:30px; margin:0 5px;"></div>
-        <button class="tb-btn" onclick="closeTaskbar()" style="background:#444; border:1px solid #888; margin-left:8px; font-size:1rem; padding: 4px 12px;">✕ Cerrar</button>
+        <!-- Row 2: Media & Configuration -->
+        <div class="tb-row" style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px;">
+            <label style="font-size:0.8rem; color:#aaa;">MULTIMEDIA:</label>
+            <input type="file" id="tb-file" accept="image/*,video/mp4,video/webm,video/ogg,image/gif" style="font-size: 0.8rem; color:#ccc;">
+            
+            <div style="flex-grow:1;"></div>
+            
+            <div style="display:flex; align-items:center; gap:20px;">
+                <label style="display:flex; align-items:center; gap:8px; color:#0ff; font-size:0.8rem; cursor:pointer; user-select:none;">
+                    <input type="checkbox" id="toggle-titles" checked onchange="window.toggleTitles(this.checked)" style="accent-color:#0ff; width:16px; height:16px;">
+                    <span style="letter-spacing:1px;">MOSTRAR TÍTULOS</span>
+                </label>
+                
+                <div style="border-left:1px solid #444; height:20px;"></div>
+                
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.8rem; color:#888;">NOMBRE GALERÍA:</span>
+                    <input type="text" id="tb-config-name" placeholder="Ej: Mi_Coleccion" class="tb-input" style="max-width:150px; background:#000;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Full Width Description -->
+        <div class="tb-row">
+            <textarea id="tb-desc" placeholder="Escribe aquí la descripción detallada de la obra..." class="tb-input" style="height: 60px; resize: none; min-height: 60px; width: 100%; max-width:none; padding: 10px; font-family: inherit;"></textarea>
+        </div>
+        
+        <!-- Row 4: Action Buttons -->
+        <div class="tb-row" style="justify-content: center; padding-top: 5px; gap: 20px;">
+            <button class="tb-btn primary" onclick="saveArtwork()">✔ Guardar / Nueva</button>
+            <button class="tb-btn danger" onclick="deleteArtwork()" id="btn-delete" disabled>🗑 Eliminar Obra</button>
+            <button class="tb-btn" onclick="closeTaskbar()" style="background:#444; border-color:#666;">✕ Cerrar Menú</button>
+        </div>
+
+        <input type="file" id="zip-import-input" accept=".zip" style="display:none;" onchange="importZipFromServer(event)">
     </div>
 
     <!-- Load Config Menu (Modal) -->
