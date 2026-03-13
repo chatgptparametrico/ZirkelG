@@ -1832,9 +1832,9 @@
 
                 // Add floating title label
                 const label = createTitleLabel(art.title);
-                label.position.set(art.x, art.y + (h / 2) + 0.45, art.z);
+                label.position.set(0, (h / 2) + 0.45, 0.01);
                 label.visible = STATE.showTitles;
-                scene.add(label);
+                mesh.add(label);
                 STATE.meshes.titleLabels.push(label);
                 
                 // Track labels on mesh for cleanup
@@ -2656,12 +2656,7 @@
                 shape.rotation.y += 0.8 * delta;
             });
 
-            // Billboarding for Title Labels
-            if (STATE.showTitles) {
-                STATE.meshes.titleLabels.forEach(label => {
-                    label.lookAt(camera.position);
-                });
-            }
+            // Billboarding for Title Labels - REMOVED: Now they follow mesh plane
 
             // Minimap Update
             updateMinimap();
