@@ -40,6 +40,17 @@ try {
 }
 
 app.use(express.json({ limit: '50mb' }));
+
+// CORS and static headers middleware
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    // Enable ranges for video seeking
+    res.header('Accept-Ranges', 'bytes');
+    next();
+});
+
 app.use(express.static(__dirname));
 app.use('/data/uploads', express.static(UPLOADS_DIR));
 
@@ -68,23 +79,34 @@ const upload = multer({ storage });
 
 // API: Upload Media
 app.post('/api/upload', upload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).send('No file uploaded.');
+    console.log('[SERVER] Received upload request');
+    if (!req.file) {
+        console.error('[SERVER] No file in request');
+        return res.status(400).send('No file uploaded.');
+    }
     
+    console.log(`[SERVER] Processing file: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
+
     // Fallback URL (local/tmp)
     let fileUrl = `/data/uploads/${req.file.filename}`;
 
     if (HAS_BLOB) {
         try {
+            console.log('[VERCEL BLOB] Attempting upload...');
             const fileBuffer = await fs.readFile(req.file.path);
             const { url } = await put(`media/${req.file.filename}`, fileBuffer, {
                 access: 'public',
                 contentType: req.file.mimetype
             });
             fileUrl = url;
-            console.log('[VERCEL BLOB] Uploaded media:', fileUrl);
+            console.log('[VERCEL BLOB] Upload successful:', fileUrl);
         } catch (err) {
             console.error('[VERCEL BLOB] Upload error:', err.message);
+            // We still return the local URL as fallback if possible, 
+            // but on Vercel this might fail later if /tmp is purged.
         }
+    } else {
+        console.log('[SERVER] Saved locally to:', fileUrl);
     }
 
     res.json({ url: fileUrl });

@@ -1656,6 +1656,7 @@
                     const video = document.createElement('video');
                     video.className = 'art-video-element';
                     video.crossOrigin = 'anonymous';
+                    video.preload = 'auto';
                     video.src = videoSrc;
                     video.loop = true;
                     video.muted = true;
@@ -1664,14 +1665,21 @@
                     video.style.display = 'none'; // Keep it off-screen
                     document.body.appendChild(video);
                     
-                    video.play().catch(() => {
-                        // Retry play on interaction if needed, though muted should work
+                    video.load(); // Explicitly trigger load
+                    video.play().catch(e => {
+                        console.warn("[TEXTURE] Video play error for:", videoSrc, e);
                     });
 
                     const videoTex = new THREE.VideoTexture(video);
                     videoTex.colorSpace = THREE.SRGBColorSpace;
                     videoTex.minFilter = THREE.LinearFilter;
                     videoTex.magFilter = THREE.LinearFilter;
+                    
+                    // Ensure the texture is marked for update when the first frame is ready
+                    video.oncanplay = () => {
+                        console.log("[TEXTURE] Video ready for texture:", videoSrc);
+                        videoTex.needsUpdate = true;
+                    };
                     mat = new THREE.MeshBasicMaterial({ map: videoTex });
                     
                 } else if(art.image && art.image.startsWith('data:image/gif')) {
@@ -2553,10 +2561,16 @@
             try {
                 const res = await fetch('/api/upload', { method: 'POST', body: formData });
                 const data = await res.json();
-                return data.url;
+                if (res.ok) {
+                    return data.url;
+                } else {
+                    const errMsg = data.error || data.message || "Error desconocido";
+                    showToast('Error al subir: ' + errMsg, 'error');
+                    return null;
+                }
             } catch (err) {
                 console.error('Error uploading media:', err);
-                showToast('Error al subir el archivo al servidor.', 'error');
+                showToast('Error de conexión al subir el archivo.', 'error');
                 return null;
             }
         }
