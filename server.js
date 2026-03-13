@@ -10,15 +10,15 @@ const execPromise = util.promisify(exec);
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Supabase Setup
-const { createClient } = require('@supabase/supabase-js');
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-let supabase = null;
-
-if (SUPABASE_URL && SUPABASE_KEY) {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('[SERVER] Supabase client initialized.');
+// Vercel Blob Setup
+const { put, list, del } = require('@vercel/blob');
+// Note: Vercel provides BLOB_READ_WRITE_TOKEN automatically if linked.
+// If running locally, you must provide it in .env or environment variables.
+const HAS_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+if (HAS_BLOB) {
+    console.log('[SERVER] Vercel Blob integration active.');
+} else {
+    console.warn('[SERVER] BLOB_READ_WRITE_TOKEN not found. Falling back to local/tmp FS.');
 }
 
 // Detection for Vercel / serverless environments
@@ -69,32 +69,20 @@ const upload = multer({ storage });
 app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
     
-    // Fallback URL
+    // Fallback URL (local/tmp)
     let fileUrl = `/data/uploads/${req.file.filename}`;
 
-    if (supabase) {
+    if (HAS_BLOB) {
         try {
-            const fileName = req.file.filename;
             const fileBuffer = await fs.readFile(req.file.path);
-            const { data, error } = await supabase.storage
-                .from('media')
-                .upload(fileName, fileBuffer, {
-                    contentType: req.file.mimetype,
-                    upsert: true
-                });
-
-            if (error) throw error;
-            
-            // Get public URL
-            const { data: publicUrlData } = supabase.storage
-                .from('media')
-                .getPublicUrl(fileName);
-            
-            fileUrl = publicUrlData.publicUrl;
-            console.log('[SUPABASE] Uploaded media:', fileUrl);
+            const { url } = await put(`media/${req.file.filename}`, fileBuffer, {
+                access: 'public',
+                contentType: req.file.mimetype
+            });
+            fileUrl = url;
+            console.log('[VERCEL BLOB] Uploaded media:', fileUrl);
         } catch (err) {
-            console.error('[SUPABASE] Upload error:', err.message);
-            // Continue with local fileUrl as fallback
+            console.error('[VERCEL BLOB] Upload error:', err.message);
         }
     }
 
@@ -111,12 +99,14 @@ app.post('/api/save', async (req, res) => {
         // Save locally always
         await fs.writeJson(filePath, data, { spaces: 2 });
 
-        if (supabase) {
-            const { error } = await supabase
-                .from('galleries')
-                .upsert({ name, data });
-            if (error) throw error;
-            console.log('[SUPABASE] Saved config:', name);
+        if (HAS_BLOB) {
+            const jsonString = JSON.stringify(data);
+            await put(`configs/${name}.json`, jsonString, {
+                access: 'public',
+                contentType: 'application/json',
+                addRandomSuffix: false // IMPORTANT: Keep stable names for listing
+            });
+            console.log('[VERCEL BLOB] Saved config:', name);
         }
 
         res.json({ message: 'Saved successfully' });
@@ -129,25 +119,24 @@ app.post('/api/save', async (req, res) => {
 // API: Get Config List
 app.get('/api/configs', async (req, res) => {
     try {
-        let configs = [];
+        let configs = new Set();
         
-        // Try Supabase first if available
-        if (supabase) {
-            const { data, error } = await supabase
-                .from('galleries')
-                .select('name');
-            if (!error && data) {
-                configs = data.map(item => item.name);
-            }
+        // Try Vercel Blob first
+        if (HAS_BLOB) {
+            const { blobs } = await list({ prefix: 'configs/' });
+            blobs.forEach(b => {
+                const name = path.basename(b.pathname, '.json');
+                configs.add(name);
+            });
         }
 
-        // If no configs from Supabase, fall back to local
-        if (configs.length === 0) {
-            const files = await fs.readdir(CONFIGS_DIR);
-            configs = files.filter(f => f.endsWith('.json')).map(f => f.replace('.json', ''));
-        }
+        // Add local files
+        const files = await fs.readdir(CONFIGS_DIR);
+        files.filter(f => f.endsWith('.json')).forEach(f => {
+            configs.add(f.replace('.json', ''));
+        });
 
-        res.json(configs);
+        res.json([...configs]);
     } catch (err) {
         console.error('[SERVER] Read configs error:', err.message);
         res.status(500).send('Error reading configs.');
@@ -158,15 +147,12 @@ app.get('/api/configs', async (req, res) => {
 app.get('/api/load/:name', async (req, res) => {
     const name = req.params.name;
     try {
-        if (supabase) {
-            const { data, error } = await supabase
-                .from('galleries')
-                .select('data')
-                .eq('name', name)
-                .single();
-            
-            if (!error && data) {
-                return res.json(data.data);
+        if (HAS_BLOB) {
+            const { blobs } = await list({ prefix: `configs/${name}.json` });
+            if (blobs.length > 0) {
+                const response = await fetch(blobs[0].url);
+                const data = await response.json();
+                return res.json(data);
             }
         }
 
