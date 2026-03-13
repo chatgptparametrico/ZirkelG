@@ -1612,9 +1612,11 @@
 
         function isMediaVideo(url) {
             if (!url) return false;
+            if (url.startsWith('data:video/') || url.startsWith('objecturl:video:')) return true;
+            // Clean URL from query parameters for extension check
+            const cleanUrl = url.split('?')[0].toLowerCase();
             const videoExtensions = ['.mp4', '.webm', '.ogg'];
-            const isVideoExt = videoExtensions.some(ext => url.toLowerCase().endsWith(ext));
-            return url.startsWith('data:video/') || url.startsWith('objecturl:video:') || isVideoExt;
+            return videoExtensions.some(ext => cleanUrl.endsWith(ext));
         }
 
         function buildArtworks() {
@@ -2291,6 +2293,7 @@
                 if(isMediaVideo(art.image)) {
                     vidEl.style.display = 'block';
                     vidEl.src = art.image.startsWith('objecturl:video:') ? art.image.replace('objecturl:video:', '') : art.image;
+                    vidEl.play().catch(e => console.warn("Auto-play blocked:", e));
                 } else if(art.image) {
                     imgEl.style.display = 'block';
                     if (art.image.startsWith('http')) {
@@ -2578,7 +2581,10 @@
                         openSaveMenu();
                     }
                 }
-                else showToast('Error al guardar en el servidor.', 'error');
+                else {
+                    const errText = await res.text();
+                    showToast('Error al guardar: ' + errText, 'error');
+                }
             } catch (err) {
                 console.error('Save error:', err);
                 showToast('Error de conexión con el servidor.', 'error');

@@ -123,19 +123,28 @@ app.get('/api/configs', async (req, res) => {
         
         // Try Vercel Blob first
         if (HAS_BLOB) {
-            const { blobs } = await list({ prefix: 'configs/' });
-            blobs.forEach(b => {
-                const name = path.basename(b.pathname, '.json');
-                configs.add(name);
-            });
+            try {
+                const { blobs } = await list({ prefix: 'configs/' });
+                console.log(`[SERVER] Found ${blobs.length} blobs in configs/`);
+                blobs.forEach(b => {
+                    // Robust name extraction
+                    const name = b.pathname.split('/').pop().replace('.json', '');
+                    if (name) configs.add(name);
+                });
+            } catch (blobErr) {
+                console.error('[SERVER] Blob list error:', blobErr.message);
+            }
         }
 
         // Add local files
-        const files = await fs.readdir(CONFIGS_DIR);
-        files.filter(f => f.endsWith('.json')).forEach(f => {
-            configs.add(f.replace('.json', ''));
-        });
+        if (await fs.pathExists(CONFIGS_DIR)) {
+            const files = await fs.readdir(CONFIGS_DIR);
+            files.filter(f => f.endsWith('.json')).forEach(f => {
+                configs.add(f.replace('.json', ''));
+            });
+        }
 
+        console.log('[SERVER] Final config list:', [...configs]);
         res.json([...configs]);
     } catch (err) {
         console.error('[SERVER] Read configs error:', err.message);
@@ -168,15 +177,38 @@ app.get('/api/load/:name', async (req, res) => {
 
 // API: Delete Config
 app.delete('/api/delete/:name', async (req, res) => {
-    const filePath = path.join(CONFIGS_DIR, `${req.params.name}.json`);
+    const name = req.params.name;
+    const filePath = path.join(CONFIGS_DIR, `${name}.json`);
     try {
+        let deleted = false;
+        
+        // Delete local
         if (await fs.pathExists(filePath)) {
             await fs.remove(filePath);
+            deleted = true;
+            console.log('[SERVER] Deleted local config:', name);
+        }
+
+        // Delete from Blob
+        if (HAS_BLOB) {
+            const { blobs } = await list({ prefix: `configs/${name}.json` });
+            if (blobs.length > 0) {
+                // Delete all matches just in case
+                for (const blob of blobs) {
+                    await del(blob.url);
+                }
+                deleted = true;
+                console.log('[VERCEL BLOB] Deleted config:', name);
+            }
+        }
+
+        if (deleted) {
             res.json({ message: 'Deleted successfully' });
         } else {
             res.status(404).send('Config not found.');
         }
     } catch (err) {
+        console.error('[SERVER] Delete error:', err.message);
         res.status(500).send('Error deleting config.');
     }
 });
