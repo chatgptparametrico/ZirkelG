@@ -390,7 +390,13 @@
         });
         
         import * as THREE from 'three';
+
+
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { inject } from '@vercel/analytics';
+
+        // Initialize Vercel Analytics
+        inject();
 
         // ==========================================
         // CONFIGURATION & STATE
