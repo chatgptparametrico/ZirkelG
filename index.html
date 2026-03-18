@@ -381,7 +381,12 @@
         <p style="font-size:0.9rem; color:#aaa; margin-bottom:20px;">Por favor, ingresa credenciales de administrador para realizar cambios.</p>
         
         <input type="text" id="login-user" placeholder="Usuario" class="tb-input" style="margin-bottom:10px; width:100%; box-sizing:border-box; padding:10px; font-size:1rem;">
-        <input type="password" id="login-pass" placeholder="Contraseña" class="tb-input" style="margin-bottom:20px; width:100%; box-sizing:border-box; padding:10px; font-size:1rem;" onkeydown="if(event.key === 'Enter') attemptLogin()">
+        <div style="position:relative; margin-bottom:20px; width:100%;">
+            <input type="password" id="login-pass" placeholder="Contraseña" class="tb-input" style="width:100%; box-sizing:border-box; padding:10px; padding-right:40px; font-size:1rem;" onkeydown="if(event.key === 'Enter') attemptLogin()">
+            <button type="button" onclick="togglePasswordVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#f33; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">
+                <span id="pass-toggle-icon">👁️</span>
+            </button>
+        </div>
         
         <button class="tb-btn" style="background:#b22; border-color:#f33; padding:12px; font-weight:bold; width:100%; margin-bottom:10px;" onclick="attemptLogin()">🔑 INGRESAR</button>
         <button class="tb-btn" onclick="closeLoginMenu()" style="background:#333; padding:8px; width:100%;">Cancelar</button>
@@ -2926,6 +2931,18 @@
             }
         }
         window.closeLoginMenu = closeLoginMenu;
+        
+        window.togglePasswordVisibility = function() {
+            const passInput = document.getElementById('login-pass');
+            const icon = document.getElementById('pass-toggle-icon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                icon.innerText = '🔒';
+            } else {
+                passInput.type = 'password';
+                icon.innerText = '👁️';
+            }
+        };
 
         async function attemptLogin() {
             const user = document.getElementById('login-user').value.trim();
