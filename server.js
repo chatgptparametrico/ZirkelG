@@ -23,18 +23,25 @@ if (HAS_BLOB) {
 
 // Detection for Vercel / serverless environments
 const IS_VERCEL = process.env.VERCEL || process.env.NOW_REGION;
-const BASE_DATA_DIR = IS_VERCEL ? '/tmp' : __dirname;
+const BASE_DATA_DIR = process.env.APP_DATA_DIR || (IS_VERCEL ? '/tmp' : __dirname);
 
 // Ensure data directories exist
 const UPLOADS_DIR = path.join(BASE_DATA_DIR, 'data', 'uploads');
 const CONFIGS_DIR = path.join(BASE_DATA_DIR, 'data', 'configs');
 const TEMP_DIR = path.join(BASE_DATA_DIR, 'data', 'temp_extract');
+const USERS_DB_PATH = path.join(BASE_DATA_DIR, 'data', 'users.json');
 
 // Only run ensureDirSync if we are NOT on Vercel or if it's the /tmp dir
 try {
     fs.ensureDirSync(UPLOADS_DIR);
     fs.ensureDirSync(CONFIGS_DIR);
     fs.ensureDirSync(TEMP_DIR);
+    
+    // Create default simple database if it doesn't exist
+    if (!fs.pathExistsSync(USERS_DB_PATH)) {
+        fs.writeJsonSync(USERS_DB_PATH, { "admin": "Entheus827$" }, { spaces: 2 });
+        console.log('[SERVER] Created default users.json database.');
+    }
 } catch (e) {
     console.warn('[SERVER] Could not create folders (likely read-only FS):', e.message);
 }
@@ -110,6 +117,22 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
 
     res.json({ url: fileUrl });
+});
+
+// API: Auth
+app.post('/api/auth', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        if (await fs.pathExists(USERS_DB_PATH)) {
+            const users = await fs.readJson(USERS_DB_PATH);
+            if (users[username] === password) {
+                return res.json({ success: true });
+            }
+        }
+    } catch (err) {
+        console.error('[SERVER] Auth error:', err.message);
+    }
+    res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
 
 // API: Save Configuration
@@ -406,6 +429,8 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
+
+module.exports = server;

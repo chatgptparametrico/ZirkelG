@@ -299,14 +299,18 @@
 
         <!-- New Row for Room Names -->
         <div class="tb-row" style="background: rgba(0,255,255,0.05); padding: 8px 15px; border-radius: 6px; border: 1px dashed rgba(0,255,255,0.2);">
-            <div style="display:flex; align-items:center; gap:20px; width:100%;">
-                <div style="display:flex; align-items:center; gap:8px; flex:1;">
-                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">NOMBRE SALA 1:</span>
-                    <input type="text" id="tb-room1-name" placeholder="Título Sala 1" class="tb-input" style="background:#000;">
+            <div style="display:flex; align-items:center; gap:10px; width:100%; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 1:</span>
+                    <input type="text" id="tb-room1-name" placeholder="Título" class="tb-input" style="background:#000;">
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; flex:1;">
-                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">NOMBRE SALA 2:</span>
-                    <input type="text" id="tb-room2-name" placeholder="Título Sala 2" class="tb-input" style="background:#000;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 2:</span>
+                    <input type="text" id="tb-room2-name" placeholder="Título" class="tb-input" style="background:#000;">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 3:</span>
+                    <input type="text" id="tb-room3-name" placeholder="Título" class="tb-input" style="background:#000;">
                 </div>
             </div>
         </div>
@@ -371,6 +375,18 @@
         <button class="tb-btn" onclick="closeSaveMenu()" style="background:#333; padding:12px;">✕ CERRAR MENÚ</button>
     </div>
 
+    <!-- Admin Login Menu (Modal) -->
+    <div id="login-menu" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:350px; background:rgba(20,0,0,0.95); border:1px solid #f33; border-radius:12px; z-index:999; display:none; flex-direction:column; padding:25px; box-shadow:0 0 50px rgba(255,0,0,0.4); backdrop-filter:blur(8px); text-align:center;">
+        <h2 style="margin-top:0; color:#f33; border-bottom:1px solid #522; padding-bottom:15px; text-transform:uppercase; letter-spacing:2px;">Acceso Restringido</h2>
+        <p style="font-size:0.9rem; color:#aaa; margin-bottom:20px;">Por favor, ingresa credenciales de administrador para realizar cambios.</p>
+        
+        <input type="text" id="login-user" placeholder="Usuario" class="tb-input" style="margin-bottom:10px; width:100%; box-sizing:border-box; padding:10px; font-size:1rem;">
+        <input type="password" id="login-pass" placeholder="Contraseña" class="tb-input" style="margin-bottom:20px; width:100%; box-sizing:border-box; padding:10px; font-size:1rem;" onkeydown="if(event.key === 'Enter') attemptLogin()">
+        
+        <button class="tb-btn" style="background:#b22; border-color:#f33; padding:12px; font-weight:bold; width:100%; margin-bottom:10px;" onclick="attemptLogin()">🔑 INGRESAR</button>
+        <button class="tb-btn" onclick="closeLoginMenu()" style="background:#333; padding:8px; width:100%;">Cancelar</button>
+    </div>
+
     <!-- Import Map generation logic and ThreeJS -->
     <script type="importmap">
         {
@@ -408,10 +424,10 @@
                 // Layout 1=Wall, 0=Air, 2=Exhibition Room (Air with ceiling lights and benches)
                 grid: [
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                    [1,0,0,0,1,0,0,0,0,0,1,2,2,2,2,2,1],
-                    [1,0,1,0,1,0,1,1,1,0,1,2,2,2,2,2,1],
-                    [1,0,1,0,0,0,1,0,1,0,0,2,2,2,2,2,1],
-                    [1,0,1,1,1,1,1,0,1,1,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,0,0,0,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,1,1,0,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,0,0,1,0,0,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,0,1,1,1,2,2,2,2,2,1],
                     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
                     [1,0,1,0,1,0,1,2,2,2,2,2,1,1,1,0,1],
                     [1,0,0,0,1,0,1,2,2,2,2,2,0,0,1,0,1],
@@ -421,6 +437,7 @@
                 ],
                 room1Name: "SALA DE ARTE",
                 room2Name: "SALA DE ARQUITECTURA",
+                room3Name: "NUEVA SALA",
                 artworks: [
     {
         "title": "El Partenón",
@@ -433,9 +450,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 12.55,
+        "x": 27.45,
         "z": 10,
-        "ry": 1.5707963267948966
+        "ry": -1.5707963267948966
     },
     {
         "title": "Coliseo Romano",
@@ -493,9 +510,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 15,
-        "z": 17.45,
-        "ry": 3.141592653589793
+        "x": 27.45,
+        "z": 15,
+        "ry": -1.5707963267948966
     },
     {
         "title": "Taj Mahal",
@@ -853,8 +870,8 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 20,
-        "z": 22.55,
+        "x": 25,
+        "z": 2.55,
         "ry": 0
     },
     {
@@ -883,9 +900,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 20,
-        "z": 17.45,
-        "ry": 3.141592653589793
+        "x": 27.45,
+        "z": 20,
+        "ry": -1.5707963267948966
     },
     {
         "title": "Casa Farnsworth",
@@ -898,9 +915,9 @@
         "y": 1.8,
         "rx": 0,
         "rz": 0,
-        "x": 7.45,
-        "z": 15,
-        "ry": -1.5707963267948966
+        "x": 20,
+        "z": 2.55,
+        "ry": 0
     },
     {
         "title": "Catedral de Brasilia",
@@ -1255,7 +1272,11 @@
             autoLook: false,
             tourSpeed: 4.0,
             tourProgress: 0,
-            tourCurve: null
+            tourCurve: null,
+            
+            // Auth
+            isAuthenticated: false,
+            authCallback: null
         };
 
         // Ensure all pre-placed artworks have unique IDs
@@ -1343,15 +1364,22 @@
 
         const blocker = document.getElementById('instructions');
         blocker.addEventListener('click', () => {
-            if(!STATE.taskbarOpen) controls.lock();
+            if(!STATE.taskbarOpen && !document.getElementById('info-panel').classList.contains('active')) {
+                controls.lock();
+            }
         });
         controls.addEventListener('lock', () => {
             blocker.style.display = 'none';
         });
         controls.addEventListener('unlock', () => {
             const infoPanelActive = document.getElementById('info-panel').classList.contains('active');
-            if(!STATE.taskbarOpen && !infoPanelActive) {
+            const saveActive = document.getElementById('save-menu').style.display === 'flex';
+            const loginActive = document.getElementById('login-menu').style.display === 'flex';
+            
+            if(!STATE.taskbarOpen && !infoPanelActive && !saveActive && !loginActive) {
                 blocker.style.display = 'flex';
+            } else {
+                blocker.style.display = 'none';
             }
         });
 
@@ -1455,17 +1483,6 @@
             solidFloor.position.set(centerX, 0, centerZ);
             scene.add(floorLines);
             scene.add(solidFloor);
-            
-            // Create GridHelper for Ceiling
-            const ceilLines = new THREE.GridHelper(floorGridSize, floorGridDivisions, 0x00ffff, 0x00ffff);
-            
-            const solidCeil = new THREE.Mesh(floorGeo, solidMat);
-            ceilLines.position.copy(floorLines.position);
-            solidCeil.position.copy(floorLines.position);
-            ceilLines.position.y = CONFIG.wallHeight;
-            solidCeil.position.y = CONFIG.wallHeight;
-            scene.add(ceilLines);
-            scene.add(solidCeil);
 
             // Benches and Light Panels geometries
             const benchGeo = new THREE.BoxGeometry(2, 0.45, 0.6);
@@ -1520,8 +1537,24 @@
             }
             wallLinesGeo.setFromPoints(wallLinesPts);
 
+            // Flat ceiling tile geometry
+            const flatCeilGeo = new THREE.PlaneGeometry(CONFIG.tileSize, CONFIG.tileSize);
+            flatCeilGeo.rotateX(Math.PI / 2); // Face down
+            const flatCeilLinesGeo = new THREE.EdgesGeometry(flatCeilGeo);
+
             for(let z=0; z<rows; z++) {
                 for(let x=0; x<cols; x++) {
+                    // Draw flat ceiling everywhere EXCEPT in room 3 (the pyramid room)
+                    if (grid[z][x] !== 3) {
+                        const ceilGrp = new THREE.Group();
+                        ceilGrp.position.set(x * CONFIG.tileSize, CONFIG.wallHeight, z * CONFIG.tileSize);
+                        const sC = new THREE.Mesh(flatCeilGeo, solidMat);
+                        const lC = new THREE.LineSegments(flatCeilLinesGeo, wireMat);
+                        ceilGrp.add(sC);
+                        ceilGrp.add(lC);
+                        scene.add(ceilGrp);
+                    }
+
                     if(grid[z][x] === 1) {
                         const wallGroup = new THREE.Group();
                         wallGroup.position.set(x * CONFIG.tileSize, 0, z * CONFIG.tileSize);
@@ -1546,12 +1579,14 @@
                         mesh.userData.box.copy(mesh.geometry.boundingBox).applyMatrix4(worldMatrix);
                         
                         STATE.meshes.walls.push(mesh);
-                    } else if (grid[z][x] === 2) {
-                        // Light Panels on Ceiling for Exhibition Rooms
-                        const panel = new THREE.Mesh(panelGeo, panelMat);
-                        panel.position.set(x * CONFIG.tileSize, CONFIG.wallHeight - 0.01, z * CONFIG.tileSize);
-                        panel.rotateX(Math.PI / 2); // Face down
-                        scene.add(panel);
+                    } else if (grid[z][x] === 2 || grid[z][x] === 3) {
+                        // For type 2: flat ceiling lights. For type 3: it will be open to pyramid
+                        if (grid[z][x] === 2) {
+                            const panel = new THREE.Mesh(panelGeo, panelMat);
+                            panel.position.set(x * CONFIG.tileSize, CONFIG.wallHeight - 0.01, z * CONFIG.tileSize);
+                            panel.rotateX(Math.PI / 2); // Face down
+                            scene.add(panel);
+                        }
                         
                         // Add some benches intermittently in the middle of rooms
                         if (x % 2 !== 0 && z % 2 !== 0) {
@@ -1566,7 +1601,10 @@
                              STATE.meshes.walls.push(bench);
                         }
                         
-                        // Add large spinning pyramids in the exhibition rooms
+                        // Add large spinning primitives in the exhibition rooms
+                        // Float a bit higher in room 3 since roof is higher
+                        const floatY = grid[z][x] === 3 ? 3.5 : 2.8;
+                        
                         if (x % 3 === 0 && z % 3 === 0) {
                             const pyramidGeo = new THREE.TetrahedronGeometry(1.2); // Large Pyramid
                             const pyramidMat = new THREE.MeshStandardMaterial({
@@ -1576,14 +1614,12 @@
                                 emissiveIntensity: 2.0
                             });
                             const pyramid = new THREE.Mesh(pyramidGeo, pyramidMat);
-                            // Float high in the room
-                            pyramid.position.set(x * CONFIG.tileSize, 2.8, z * CONFIG.tileSize);
+                            pyramid.position.set(x * CONFIG.tileSize, floatY, z * CONFIG.tileSize);
                             pyramid.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
                             scene.add(pyramid);
                             STATE.meshes.floatingShapes.push(pyramid);
                         }
                         
-                        // Add large spinning green spheres in the exhibition rooms
                         if (x % 3 === 1 && z % 3 === 1) {
                             const sphereGeo = new THREE.IcosahedronGeometry(0.8, 1); // Large Geodesic Sphere
                             const sphereMat = new THREE.MeshStandardMaterial({
@@ -1593,8 +1629,7 @@
                                 emissiveIntensity: 2.0
                             });
                             const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-                            // Float high in the room
-                            sphere.position.set(x * CONFIG.tileSize, 2.8, z * CONFIG.tileSize);
+                            sphere.position.set(x * CONFIG.tileSize, floatY, z * CONFIG.tileSize);
                             sphere.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
                             scene.add(sphere);
                             STATE.meshes.floatingShapes.push(sphere);
@@ -1648,6 +1683,124 @@
                     }
                 }
             }
+
+            // Hollow Stepped Pyramid Ceiling for Room 3
+            // Room 3 spans cols x=1..5 (center x=3), rows z=1..4 (center z=2.5)
+            const pyrGroup = new THREE.Group();
+            pyrGroup.position.set(3 * CONFIG.tileSize, CONFIG.wallHeight, 2.5 * CONFIG.tileSize);
+            
+            const steps = 6;
+            const stepH = 1.0;
+            const stepDepth = 1.0; // Inward step size
+            
+            let curW = 5 * CONFIG.tileSize; // 25
+            let curD = 4 * CONFIG.tileSize; // 20
+            let curY = 0;
+            
+            for (let i = 0; i < steps; i++) {
+                const wallH = stepH;
+                
+                // Vertical walls (Risers)
+                if (curW > 0 && curD > 0) {
+                    // North wall
+                    const nGeo = new THREE.PlaneGeometry(curW, wallH);
+                    nGeo.translate(0, wallH/2, -curD/2);
+                    
+                    // South wall
+                    const sGeo = new THREE.PlaneGeometry(curW, wallH);
+                    sGeo.rotateY(Math.PI);
+                    sGeo.translate(0, wallH/2, curD/2);
+                    
+                    // East wall
+                    const eGeo = new THREE.PlaneGeometry(curD, wallH);
+                    eGeo.rotateY(-Math.PI/2);
+                    eGeo.translate(curW/2, wallH/2, 0);
+                    
+                    // West wall
+                    const wGeo = new THREE.PlaneGeometry(curD, wallH);
+                    wGeo.rotateY(Math.PI/2);
+                    wGeo.translate(-curW/2, wallH/2, 0);
+                    
+                    [nGeo, sGeo, eGeo, wGeo].forEach(g => {
+                        const m = new THREE.Mesh(g, solidMat);
+                        const l = new THREE.LineSegments(new THREE.EdgesGeometry(g), wireMat);
+                        m.position.y = curY;
+                        l.position.y = curY;
+                        pyrGroup.add(m);
+                        pyrGroup.add(l);
+                    });
+                }
+                
+                curY += stepH;
+                
+                // Horizontal soffits (Inward steps)
+                const nextW = curW - (2 * stepDepth);
+                const nextD = curD - (2 * stepDepth);
+                
+                if (nextW > 0 && nextD > 0) {
+                    const nsGeo = new THREE.PlaneGeometry(curW, stepDepth);
+                    nsGeo.rotateX(Math.PI/2);
+                    nsGeo.translate(0, 0, -curD/2 + stepDepth/2);
+                    
+                    const ssGeo = new THREE.PlaneGeometry(curW, stepDepth);
+                    ssGeo.rotateX(Math.PI/2);
+                    ssGeo.translate(0, 0, curD/2 - stepDepth/2);
+                    
+                    const esGeo = new THREE.PlaneGeometry(stepDepth, nextD);
+                    esGeo.rotateX(Math.PI/2);
+                    esGeo.translate(curW/2 - stepDepth/2, 0, 0);
+                    
+                    const wsGeo = new THREE.PlaneGeometry(stepDepth, nextD);
+                    wsGeo.rotateX(Math.PI/2);
+                    wsGeo.translate(-curW/2 + stepDepth/2, 0, 0);
+                    
+                    [nsGeo, ssGeo, esGeo, wsGeo].forEach(g => {
+                        const m = new THREE.Mesh(g, solidMat);
+                        const l = new THREE.LineSegments(new THREE.EdgesGeometry(g), wireMat);
+                        m.position.y = curY;
+                        l.position.y = curY;
+                        pyrGroup.add(m);
+                        pyrGroup.add(l);
+                    });
+                    
+                    curW = nextW;
+                    curD = nextD;
+                } else {
+                    // Cap the top
+                    const capGeo = new THREE.PlaneGeometry(curW, curD);
+                    capGeo.rotateX(Math.PI/2); // Face down
+                    const capM = new THREE.Mesh(capGeo, solidMat);
+                    const capL = new THREE.LineSegments(new THREE.EdgesGeometry(capGeo), wireMat);
+                    
+                    // Circular Skylight Glow Panel
+                    const circGeo = new THREE.CircleGeometry(3.5, 32);
+                    circGeo.rotateX(Math.PI/2);
+                    const capGlow = new THREE.Mesh(circGeo, new THREE.MeshBasicMaterial({color: 0xffffff, colorSpace: THREE.SRGBColorSpace}));
+                    
+                    // Add a glowing cyan rim for the circular panel
+                    const ringGeo = new THREE.RingGeometry(3.5, 3.7, 32);
+                    ringGeo.rotateX(Math.PI/2);
+                    const ringMat = new THREE.MeshBasicMaterial({color: 0x00ffff, colorSpace: THREE.SRGBColorSpace});
+                    const rim = new THREE.Mesh(ringGeo, ringMat);
+                    
+                    capGlow.position.y = curY - 0.02;
+                    rim.position.y = curY - 0.02;
+                    
+                    // Add actual PointLight to illuminate the gallery below
+                    const skylight = new THREE.PointLight(0xffffff, 1.5, 25);
+                    skylight.position.y = curY - 0.5;
+                    
+                    capM.position.y = curY;
+                    capL.position.y = curY;
+                    pyrGroup.add(capM);
+                    pyrGroup.add(capL);
+                    pyrGroup.add(capGlow);
+                    pyrGroup.add(rim);
+                    pyrGroup.add(skylight);
+                    break;
+                }
+            }
+            scene.add(pyrGroup);
 
             // AUTO-TOUR PATH GENERATION (CatmullRom Spline through safe grid cells)
             const t = CONFIG.tileSize;
@@ -1882,6 +2035,13 @@
             label2.position.set(45, 3.2, 35);
             scene.add(label2);
             STATE.meshes.roomLabels.push(label2);
+
+            // Room 3 Center: x=15, z=12.5
+            const label3 = createTitleLabel(STATE.galleryData.room3Name || "NUEVA SALA", '#ff00ff', '#00ffff');
+            label3.scale.set(3, 3, 1);
+            label3.position.set(15, 3.2, 12.5);
+            scene.add(label3);
+            STATE.meshes.roomLabels.push(label3);
         }
 
         window.toggleTitles = function(visible) {
@@ -2287,9 +2447,19 @@
         // INPUT & MOVEMENT
         // ==========================================
         document.addEventListener('keydown', (e) => {
-                // Save Menu Toggle
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            // Save Menu Toggle
                 // Save Menu Only Open with J
                 if(e.code === 'KeyJ') {
+                    if (!STATE.isAuthenticated) {
+                        showLoginMenu(() => {
+                            const sm = document.getElementById('save-menu');
+                            const isActive = sm.style.display === 'flex';
+                            if(!isActive) openSaveMenu();
+                        });
+                        return;
+                    }
                     const sm = document.getElementById('save-menu');
                     const isActive = sm.style.display === 'flex';
                     if(!isActive) {
@@ -2300,10 +2470,22 @@
                 }
                 // Taskbar Toggle
                 if(e.code === 'KeyH') {
+                    if (!STATE.isAuthenticated) {
+                        showLoginMenu(() => {
+                            if(!STATE.taskbarOpen) toggleTaskbarOpen();
+                        });
+                        return;
+                    }
+                    toggleTaskbarOpen();
+                    return;
+                }
+
+                function toggleTaskbarOpen() {
                     STATE.taskbarOpen = !STATE.taskbarOpen;
                     const tb = document.getElementById('taskbar');
                     
                     if(STATE.taskbarOpen) {
+                        document.getElementById('instructions').style.display = 'none';
                         controls.unlock();
                         
                         const rc = new THREE.Raycaster();
@@ -2323,12 +2505,9 @@
                         }
 
                         // Populate Room Names in UI
-                        if (document.getElementById('tb-room1-name')) {
-                            document.getElementById('tb-room1-name').value = STATE.galleryData.room1Name || "";
-                        }
-                        if (document.getElementById('tb-room2-name')) {
-                            document.getElementById('tb-room2-name').value = STATE.galleryData.room2Name || "";
-                        }
+                        if (document.getElementById('tb-room1-name')) document.getElementById('tb-room1-name').value = STATE.galleryData.room1Name || "";
+                        if (document.getElementById('tb-room2-name')) document.getElementById('tb-room2-name').value = STATE.galleryData.room2Name || "";
+                        if (document.getElementById('tb-room3-name')) document.getElementById('tb-room3-name').value = STATE.galleryData.room3Name || "";
 
                         if (art) {
                             STATE.selectedArtwork = art.id;
@@ -2355,9 +2534,9 @@
                         tb.classList.remove('active');
                         controls.lock();
                     }
-                    return;
                 }
-            if(STATE.taskbarOpen || document.getElementById('info-panel').classList.contains('active')) return;
+
+            if(STATE.taskbarOpen || document.getElementById('info-panel').classList.contains('active') || document.getElementById('login-menu').style.display === 'flex') return;
 
             switch(e.code) {
                 case 'ArrowUp':
@@ -2728,6 +2907,55 @@
             setTimeout(() => toast.remove(), 3000);
         }
         window.showToast = showToast;
+        
+        function showLoginMenu(callback) {
+            STATE.authCallback = callback;
+            document.getElementById('login-menu').style.display = 'flex';
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            controls.unlock();
+            setTimeout(() => document.getElementById('login-user').focus(), 100);
+        }
+        window.showLoginMenu = showLoginMenu;
+
+        function closeLoginMenu() {
+            document.getElementById('login-menu').style.display = 'none';
+            STATE.authCallback = null;
+            if(!STATE.taskbarOpen && !document.getElementById('save-menu').style.display === 'flex') {
+                controls.lock();
+            }
+        }
+        window.closeLoginMenu = closeLoginMenu;
+
+        async function attemptLogin() {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            
+            if(!user || !pass) return showToast('Completa todos los campos.', 'error');
+            
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    STATE.isAuthenticated = true;
+                    showToast('Administrador verificado.', 'success');
+                    document.getElementById('login-menu').style.display = 'none';
+                    if(STATE.authCallback) {
+                        STATE.authCallback();
+                        STATE.authCallback = null;
+                    }
+                } else {
+                    showToast('Credenciales incorrectas.', 'error');
+                }
+            } catch(e) {
+                showToast('Error conectando al servidor.', 'error');
+            }
+        }
+        window.attemptLogin = attemptLogin;
 
         async function uploadMedia(file) {
             const formData = new FormData();
