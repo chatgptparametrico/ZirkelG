@@ -119,16 +119,72 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     res.json({ url: fileUrl });
 });
 
+// ==========================================
+// USERS DB VIA VERCEL BLOB
+// ==========================================
+const USERS_BLOB_NAME = 'users/users.json';
+const DEFAULT_USERS = { admin: 'Entheus827$' };
+
+async function readUsersBlob() {
+    if (!HAS_BLOB) return null;
+    try {
+        const { blobs } = await list({ prefix: USERS_BLOB_NAME });
+        if (blobs.length === 0) return null;
+        // Fetch the blob content
+        const resp = await fetch(blobs[0].url);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch (e) {
+        console.error('[BLOB] Error reading users:', e.message);
+        return null;
+    }
+}
+
+async function writeUsersBlob(users) {
+    if (!HAS_BLOB) return;
+    try {
+        await put(USERS_BLOB_NAME, JSON.stringify(users, null, 2), {
+            access: 'public',
+            contentType: 'application/json',
+            addRandomSuffix: false
+        });
+        console.log('[BLOB] users.json updated.');
+    } catch (e) {
+        console.error('[BLOB] Error writing users:', e.message);
+    }
+}
+
+// Initialize users blob with defaults if it doesn't exist
+(async () => {
+    if (HAS_BLOB) {
+        const existing = await readUsersBlob();
+        if (!existing) {
+            await writeUsersBlob(DEFAULT_USERS);
+            console.log('[BLOB] Initialized default users.json in Vercel Blob.');
+        }
+    }
+})();
+
 // API: Auth
 app.post('/api/auth', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ success: false, message: 'Missing credentials' });
 
-    // Vercel Serverless Fallback (In case /tmp FS fails)
-    if (username === 'admin' && password === 'Entheus827$') {
-        return res.json({ success: true });
+    // Try Vercel Blob first
+    if (HAS_BLOB) {
+        try {
+            const users = await readUsersBlob();
+            if (users && users[username] === password) {
+                return res.json({ success: true });
+            } else if (users) {
+                return res.status(401).json({ success: false, message: 'Invalid credentials' });
+            }
+        } catch (err) {
+            console.error('[SERVER] Blob auth error:', err.message);
+        }
     }
 
+    // Fallback: local file or hardcoded default
     try {
         if (await fs.pathExists(USERS_DB_PATH)) {
             const users = await fs.readJson(USERS_DB_PATH);
@@ -137,11 +193,71 @@ app.post('/api/auth', async (req, res) => {
             }
         }
     } catch (err) {
-        console.error('[SERVER] Auth error:', err.message);
+        console.error('[SERVER] Local auth error:', err.message);
     }
-    
+
+    // Ultimate fallback for admin account
+    if (username === 'admin' && password === DEFAULT_USERS['admin']) {
+        return res.json({ success: true });
+    }
+
     res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
+
+// API: Add User (admin only - requires existing auth first)
+app.post('/api/users/add', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+
+    try {
+        let users = HAS_BLOB ? (await readUsersBlob() || {}) : {};
+        if (!HAS_BLOB && await fs.pathExists(USERS_DB_PATH)) {
+            users = await fs.readJson(USERS_DB_PATH);
+        }
+        users[username] = password;
+        if (HAS_BLOB) await writeUsersBlob(users);
+        await fs.writeJson(USERS_DB_PATH, users, { spaces: 2 }).catch(() => {});
+        res.json({ success: true, message: `User "${username}" added.` });
+    } catch (err) {
+        console.error('[SERVER] Add user error:', err.message);
+        res.status(500).json({ error: 'Failed to add user.' });
+    }
+});
+
+// API: Delete User
+app.delete('/api/users/:username', async (req, res) => {
+    const { username } = req.params;
+    if (username === 'admin') return res.status(403).json({ error: 'Cannot delete admin.' });
+
+    try {
+        let users = HAS_BLOB ? (await readUsersBlob() || {}) : {};
+        if (!HAS_BLOB && await fs.pathExists(USERS_DB_PATH)) {
+            users = await fs.readJson(USERS_DB_PATH);
+        }
+        delete users[username];
+        if (HAS_BLOB) await writeUsersBlob(users);
+        await fs.writeJson(USERS_DB_PATH, users, { spaces: 2 }).catch(() => {});
+        res.json({ success: true, message: `User "${username}" deleted.` });
+    } catch (err) {
+        console.error('[SERVER] Delete user error:', err.message);
+        res.status(500).json({ error: 'Failed to delete user.' });
+    }
+});
+
+// API: List Users
+app.get('/api/users', async (req, res) => {
+    try {
+        let users = HAS_BLOB ? (await readUsersBlob() || {}) : {};
+        if (!HAS_BLOB && await fs.pathExists(USERS_DB_PATH)) {
+            users = await fs.readJson(USERS_DB_PATH);
+        }
+        // Return usernames only (never passwords)
+        res.json({ users: Object.keys(users) });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to list users.' });
+    }
+});
+
 
 // API: Save Configuration
 app.post('/api/save', async (req, res) => {
