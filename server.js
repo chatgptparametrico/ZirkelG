@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -586,40 +587,61 @@ app.get('/api/wp-proxy', async (req, res) => {
 
 // API: AI Interpretation Proxy (keeps API key server-side)
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || '';
+const AI_MODELS = ['google/gemma-3-27b-it:free', 'meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'];
+
 app.post('/api/ai-interpret', async (req, res) => {
     const { text } = req.body;
     if (!text) return res.status(400).json({ error: 'Missing text' });
     if (!OPENROUTER_KEY) {
-        // No key configured - return a placeholder
         return res.json({ interpretation: null });
     }
 
     const prompt = `Eres un crítico de arte y arquitectura. En máximo 3 oraciones en español, interpreta brevemente este texto sobre una obra: "${text.substring(0, 300)}". Sé poético y conciso.`;
 
-    try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENROUTER_KEY}`,
-                'HTTP-Referer': 'https://zirkeldep.com',
-                'X-Title': 'ZirkelG Gallery'
-            },
-            body: JSON.stringify({
-                model: 'google/gemma-3-27b-it:free',
-                messages: [{ role: 'user', content: prompt }],
-                max_tokens: 150
-            }),
-            signal: AbortSignal.timeout(20000)
-        });
-        if (!response.ok) throw new Error(`OpenRouter returned ${response.status}`);
-        const data = await response.json();
-        const interpretation = data.choices?.[0]?.message?.content || '';
-        res.json({ interpretation });
-    } catch (err) {
-        console.error('[AI] Interpretation error:', err.message);
-        res.status(500).json({ error: err.message, interpretation: null });
+    for (const model of AI_MODELS) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENROUTER_KEY}`,
+                        'HTTP-Referer': 'https://zirkeldep.com',
+                        'X-Title': 'ZirkelG Gallery'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 150
+                    }),
+                    signal: AbortSignal.timeout(20000)
+                });
+                
+                if (response.status === 429) {
+                    console.warn(`[AI] Rate limited on ${model}, attempt ${attempt + 1}`);
+                    await new Promise(r => setTimeout(r, 2000));
+                    continue;
+                }
+                if (!response.ok) {
+                    console.warn(`[AI] ${model} returned ${response.status}, trying next model`);
+                    break; // Try next model
+                }
+                
+                const data = await response.json();
+                const interpretation = data.choices?.[0]?.message?.content || '';
+                if (interpretation) {
+                    return res.json({ interpretation });
+                }
+            } catch (err) {
+                console.error(`[AI] Error with ${model}:`, err.message);
+                break; // Try next model
+            }
+        }
     }
+    
+    // All models failed
+    console.warn('[AI] All models failed, returning null');
+    res.json({ interpretation: null });
 });
 
 const server = app.listen(PORT, () => {
