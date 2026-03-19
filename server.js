@@ -39,7 +39,7 @@ try {
     
     // Create default simple database if it doesn't exist
     if (!fs.pathExistsSync(USERS_DB_PATH)) {
-        fs.writeJsonSync(USERS_DB_PATH, { "admin": "Entheus827$" }, { spaces: 2 });
+        fs.writeJsonSync(USERS_DB_PATH, { "admin": "FLLestructuras" }, { spaces: 2 });
         console.log('[SERVER] Created default users.json database.');
     }
 } catch (e) {
@@ -125,7 +125,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // Use a secret prefix so the URL is unguessable even though Vercel Blob is technically "public"
 const BLOB_SECRET_PREFIX = process.env.BLOB_SECRET_PREFIX || 'zkg_a8f3d12b_c6e7_4a09_8f2e_1b3c9d0e5f71';
 const USERS_BLOB_NAME = `${BLOB_SECRET_PREFIX}/users.json`;
-const DEFAULT_USERS = { admin: 'Entheus827$' };
+const DEFAULT_USERS = { admin: 'FLLestructuras' };
 
 async function readUsersBlob() {
     if (!HAS_BLOB) return null;
@@ -552,6 +552,73 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
         } catch (cleanupErr) {
             console.error('[IMPORT] Cleanup error:', cleanupErr);
         }
+    }
+});
+
+// API: WordPress Proxy (avoid CORS issues when fetching WP REST API)
+app.get('/api/wp-proxy', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) return res.status(400).json({ error: 'Missing url parameter' });
+
+    // Only allow fetching from WordPress REST API endpoints
+    try {
+        const url = new URL(targetUrl);
+        if (!url.pathname.includes('/wp-json/')) {
+            return res.status(403).json({ error: 'Only WordPress REST API URLs are allowed' });
+        }
+    } catch (e) {
+        return res.status(400).json({ error: 'Invalid URL' });
+    }
+
+    try {
+        console.log('[WP-PROXY] Fetching:', targetUrl);
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
+            return res.status(response.status).json({ error: `WordPress API returned ${response.status}` });
+        }
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        console.error('[WP-PROXY] Error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch from WordPress: ' + err.message });
+    }
+});
+
+// API: AI Interpretation Proxy (keeps API key server-side)
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || '';
+app.post('/api/ai-interpret', async (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: 'Missing text' });
+    if (!OPENROUTER_KEY) {
+        // No key configured - return a placeholder
+        return res.json({ interpretation: null });
+    }
+
+    const prompt = `Eres un crítico de arte y arquitectura. En máximo 3 oraciones en español, interpreta brevemente este texto sobre una obra: "${text.substring(0, 300)}". Sé poético y conciso.`;
+
+    try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENROUTER_KEY}`,
+                'HTTP-Referer': 'https://zirkeldep.com',
+                'X-Title': 'ZirkelG Gallery'
+            },
+            body: JSON.stringify({
+                model: 'google/gemma-3-27b-it:free',
+                messages: [{ role: 'user', content: prompt }],
+                max_tokens: 150
+            }),
+            signal: AbortSignal.timeout(20000)
+        });
+        if (!response.ok) throw new Error(`OpenRouter returned ${response.status}`);
+        const data = await response.json();
+        const interpretation = data.choices?.[0]?.message?.content || '';
+        res.json({ interpretation });
+    } catch (err) {
+        console.error('[AI] Interpretation error:', err.message);
+        res.status(500).json({ error: err.message, interpretation: null });
     }
 });
 

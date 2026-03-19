@@ -191,6 +191,43 @@
             from { transform: translateY(0); opacity: 1; }
             to { transform: translateY(-20px); opacity: 0; }
         }
+
+        /* Menu P - WordPress Posts Manager */
+        #wp-menu {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 85vw; max-width: 1100px; max-height: 85vh;
+            background: rgba(10, 12, 20, 0.98); border: 1px solid #0ff; border-radius: 12px;
+            z-index: 220; display: none; flex-direction: column; padding: 25px;
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.3); backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        #wp-menu h2 { margin-top: 0; color: #0ff; border-bottom: 1px solid #333; padding-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; font-size: 1.2rem; }
+        .wp-gallery-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(0,255,255,0.15); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .wp-gallery-section h3 { margin: 0 0 10px; color: #ff00ff; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .wp-post-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 200px; overflow-y: auto; }
+        .wp-post-item {
+            display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.4);
+            padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
+        }
+        .wp-post-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #333; }
+        .wp-post-item .wp-post-info { flex: 1; }
+        .wp-post-item .wp-post-info .wp-post-title { font-size: 0.85rem; color: #eee; font-weight: bold; }
+        .wp-post-item .wp-post-info .wp-post-url { font-size: 0.7rem; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+        .wp-post-actions { display: flex; gap: 5px; }
+        .wp-add-row { display: flex; gap: 8px; align-items: center; }
+        .wp-add-row input { flex: 1; }
+        .wp-import-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(0,255,255,0.2); }
+        .wp-import-row select { background: #111; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; }
+
+        /* Info Panel 3-column */
+        .info-panel-content { display: flex; flex-grow: 1; gap: 20px; min-height: 0; }
+        .info-col-image { flex: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #000; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .info-col-detail { flex: 1.5; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 10px; }
+        .info-col-blog { flex: 1; display: flex; justify-content: center; align-items: center; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px dashed rgba(0,255,255,0.3); }
+        .info-col-blog span { font-size: 4rem; font-weight: bold; color: rgba(0,255,255,0.15); text-transform: uppercase; letter-spacing: 8px; writing-mode: vertical-lr; text-orientation: mixed; }
+        .ai-interpretation { background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.15); border-radius: 8px; padding: 12px; margin-top: 10px; }
+        .ai-interpretation h4 { margin: 0 0 8px; color: #0ff; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        .ai-interpretation p { margin: 0; font-size: 0.85rem; color: #aaa; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -219,6 +256,7 @@
                 <div><kbd>+</kbd><kbd>-</kbd> Velocidad Tour</div>
                 <div><kbd>H</kbd> Abrir menú de carga / Editar</div>
                 <div><kbd>J</kbd> Menú de Guardado y Exportación</div>
+                <div><kbd>P</kbd> Gestor de Posts WordPress</div>
             </div>
         </div>
     </div>
@@ -226,22 +264,141 @@
     <!-- Crosshair HUD -->
     <div id="crosshair" style="position:fixed; top:50%; left:50%; width:4px; height:4px; background:rgba(255,255,255,0.8); border: 1px solid rgba(0,0,0,0.5); border-radius:50%; transform:translate(-50%, -50%); pointer-events:none; z-index:99;"></div>
 
-    <!-- Artwork Info Panel -->
+    <!-- Artwork Info Panel (3 columns) -->
     <div id="info-panel">
         <button class="close-btn" onclick="closeInfoPanel()" style="color: #fff;">×</button>
         <h2 id="info-title">Título</h2>
-        <div style="display:flex; flex-grow:1; gap:20px; min-height:0;">
-            <div style="flex:2; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#000; border-radius:8px; border:1px solid #333; overflow:hidden;">
+        <div class="info-panel-content">
+            <!-- Column 1: Image / Video -->
+            <div class="info-col-image">
                 <img id="info-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" />
                 <video id="info-video" style="display:none; max-width:100%; max-height:100%; object-fit:contain;" controls loop autoplay muted playsinline crossorigin="anonymous"></video>
             </div>
-            <div style="flex:1; display:flex; flex-direction:column; gap:15px; overflow-y:auto; padding-right:10px;">
-                <p id="info-desc">Descripción de la obra...</p>
-                <div id="info-author">Autor</div>
-                <button id="info-link-btn" class="tb-btn primary" style="display:none; width:100%; padding:15px; font-size:1.1rem;" onclick="window.open(this.dataset.url, '_blank')">🌐 Visitar Enlace Externo</button>
+            <!-- Column 2: Description + AI Interpretation -->
+            <div class="info-col-detail">
+                <p id="info-desc" style="margin:0; font-size:1.05rem; line-height:1.7; color:#ccc; white-space:pre-wrap;">Descripción de la obra...</p>
+                <div id="info-author" style="font-size:0.95rem; color:#888; font-style:italic;"></div>
+                <button id="info-link-btn" class="tb-btn primary" style="display:none; padding:12px; font-size:1rem;" onclick="window.open(this.dataset.url, '_blank')">🌐 Visitar Enlace</button>
+                <div class="ai-interpretation">
+                    <h4>🤖 Interpretación IA</h4>
+                    <p id="info-ai-text" style="font-style:italic; color:#888;">Cargando interpretación...</p>
+                </div>
+            </div>
+            <!-- Column 3: Blog placeholder -->
+            <div class="info-col-blog">
+                <span>BLOG</span>
             </div>
         </div>
     </div>
+
+    <!-- Menu P: WordPress Posts Manager -->
+    <div id="wp-menu">
+        <h2>📰 Gestor de Posts WordPress — Menú P</h2>
+        <p style="font-size:0.8rem; color:#888; margin: -10px 0 15px;">Importa posts de WordPress y ubícalos en la galería correspondiente.</p>
+
+        <!-- Gallery Section 1 -->
+        <div class="wp-gallery-section" id="wp-section-0">
+            <h3>🏛 <span id="wp-room1-label">Sala 1</span></h3>
+            <div class="wp-post-list" id="wp-list-0"></div>
+            <div class="wp-add-row">
+                <input type="text" id="wp-input-0" placeholder="Pega URL de post WordPress aquí..." class="tb-input">
+                <button class="tb-btn primary" style="white-space:nowrap; min-width:120px;" onclick="addWpPost(0)">➕ Agregar</button>
+            </div>
+            <div class="wp-import-row">
+                <span style="font-size:0.8rem; color:#888; white-space:nowrap;">Importar categoría:</span>
+                <select id="wp-cat-0" class="wp-import-row select">
+                    <option value="">Cargando categorías...</option>
+                </select>
+                <button class="tb-btn" style="background:#2c4563; border-color:#4a7fb5; min-width:160px; white-space:nowrap;" onclick="importWpCategory(0)">📦 Importar Todos los Posts</button>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="tb-btn primary" style="width:100%; padding:10px;" onclick="applyWpPostsToGallery(0)">✅ Aplicar a Galería → Sala 1</button>
+            </div>
+        </div>
+
+        <!-- Gallery Section 2 -->
+        <div class="wp-gallery-section" id="wp-section-1">
+            <h3>🏛 <span id="wp-room2-label">Sala 2</span></h3>
+            <div class="wp-post-list" id="wp-list-1"></div>
+            <div class="wp-add-row">
+                <input type="text" id="wp-input-1" placeholder="Pega URL de post WordPress aquí..." class="tb-input">
+                <button class="tb-btn primary" style="white-space:nowrap; min-width:120px;" onclick="addWpPost(1)">➕ Agregar</button>
+            </div>
+            <div class="wp-import-row">
+                <span style="font-size:0.8rem; color:#888; white-space:nowrap;">Importar categoría:</span>
+                <select id="wp-cat-1" class="wp-import-row select">
+                    <option value="">Cargando categorías...</option>
+                </select>
+                <button class="tb-btn" style="background:#2c4563; border-color:#4a7fb5; min-width:160px; white-space:nowrap;" onclick="importWpCategory(1)">📦 Importar Todos los Posts</button>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="tb-btn primary" style="width:100%; padding:10px;" onclick="applyWpPostsToGallery(1)">✅ Aplicar a Galería → Sala 2</button>
+            </div>
+        </div>
+
+        <!-- Gallery Section 3 -->
+        <div class="wp-gallery-section" id="wp-section-2">
+            <h3>🏛 <span id="wp-room3-label">Sala 3</span></h3>
+            <div class="wp-post-list" id="wp-list-2"></div>
+            <div class="wp-add-row">
+                <input type="text" id="wp-input-2" placeholder="Pega URL de post WordPress aquí..." class="tb-input">
+                <button class="tb-btn primary" style="white-space:nowrap; min-width:120px;" onclick="addWpPost(2)">➕ Agregar</button>
+            </div>
+            <div class="wp-import-row">
+                <span style="font-size:0.8rem; color:#888; white-space:nowrap;">Importar categoría:</span>
+                <select id="wp-cat-2" class="wp-import-row select">
+                    <option value="">Cargando categorías...</option>
+                </select>
+                <button class="tb-btn" style="background:#2c4563; border-color:#4a7fb5; min-width:160px; white-space:nowrap;" onclick="importWpCategory(2)">📦 Importar Todos los Posts</button>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="tb-btn primary" style="width:100%; padding:10px;" onclick="applyWpPostsToGallery(2)">✅ Aplicar a Galería → Sala 3</button>
+            </div>
+        </div>
+
+        <!-- Gallery Section 4 -->
+        <div class="wp-gallery-section" id="wp-section-3">
+            <h3>🏛 <span id="wp-room4-label">Sala 4</span></h3>
+            <div class="wp-post-list" id="wp-list-3"></div>
+            <div class="wp-add-row">
+                <input type="text" id="wp-input-3" placeholder="Pega URL de post WordPress aquí..." class="tb-input">
+                <button class="tb-btn primary" style="white-space:nowrap; min-width:120px;" onclick="addWpPost(3)">➕ Agregar</button>
+            </div>
+            <div class="wp-import-row">
+                <span style="font-size:0.8rem; color:#888; white-space:nowrap;">Importar categoría:</span>
+                <select id="wp-cat-3" class="wp-import-row select">
+                    <option value="">Cargando categorías...</option>
+                </select>
+                <button class="tb-btn" style="background:#2c4563; border-color:#4a7fb5; min-width:160px; white-space:nowrap;" onclick="importWpCategory(3)">📦 Importar Todos los Posts</button>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="tb-btn primary" style="width:100%; padding:10px;" onclick="applyWpPostsToGallery(3)">✅ Aplicar a Galería → Sala 4</button>
+            </div>
+        </div>
+
+        <!-- Gallery Section 5 -->
+        <div class="wp-gallery-section" id="wp-section-4">
+            <h3>🏛 <span id="wp-room5-label">Sala 5</span></h3>
+            <div class="wp-post-list" id="wp-list-4"></div>
+            <div class="wp-add-row">
+                <input type="text" id="wp-input-4" placeholder="Pega URL de post WordPress aquí..." class="tb-input">
+                <button class="tb-btn primary" style="white-space:nowrap; min-width:120px;" onclick="addWpPost(4)">➕ Agregar</button>
+            </div>
+            <div class="wp-import-row">
+                <span style="font-size:0.8rem; color:#888; white-space:nowrap;">Importar categoría:</span>
+                <select id="wp-cat-4" class="wp-import-row select">
+                    <option value="">Cargando categorías...</option>
+                </select>
+                <button class="tb-btn" style="background:#2c4563; border-color:#4a7fb5; min-width:160px; white-space:nowrap;" onclick="importWpCategory(4)">📦 Importar Todos los Posts</button>
+            </div>
+            <div style="margin-top:10px;">
+                <button class="tb-btn primary" style="width:100%; padding:10px;" onclick="applyWpPostsToGallery(4)">✅ Aplicar a Galería → Sala 5</button>
+            </div>
+        </div>
+
+        <button class="tb-btn" onclick="closeWpMenu()" style="background:#333; padding:12px; width:100%;">✕ CERRAR MENÚ</button>
+    </div>
+
 
     <!-- Tour Controls HUD -->
     <div id="tour-controls" style="position:absolute; top:20px; right:20px; z-index:40; display:flex; flex-direction:column; gap:10px; background:rgba(0,5,10,0.8); padding:15px; border:1px solid #0ff; border-radius:8px; backdrop-filter:blur(4px); font-family:monospace; color:#0ff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);">
@@ -311,6 +468,14 @@
                 <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
                     <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 3:</span>
                     <input type="text" id="tb-room3-name" placeholder="Título" class="tb-input" style="background:#000;">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 4:</span>
+                    <input type="text" id="tb-room4-name" placeholder="Título" class="tb-input" style="background:#000;">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:120px;">
+                    <span style="font-size:0.75rem; color:#0ff; font-weight:bold;">SALA 5:</span>
+                    <input type="text" id="tb-room5-name" placeholder="Título" class="tb-input" style="background:#000;">
                 </div>
             </div>
         </div>
@@ -446,20 +611,22 @@
                 // Layout 1=Wall, 0=Air, 2=Exhibition Room (Air with ceiling lights and benches)
                 grid: [
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                    [1,3,3,3,3,3,1,1,1,1,1,2,2,2,2,2,1],
-                    [1,3,3,3,3,3,1,1,1,1,1,2,2,2,2,2,1],
-                    [1,3,3,3,3,3,1,1,1,1,1,2,2,2,2,2,1],
-                    [1,3,3,3,3,3,1,1,1,1,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,2,2,2,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,2,2,2,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,2,2,2,1,2,2,2,2,2,1],
+                    [1,3,3,3,3,3,1,2,2,2,1,2,2,2,2,2,1],
                     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                    [1,0,1,1,1,0,1,2,2,2,2,2,0,0,0,0,1],
-                    [1,0,1,1,1,0,1,2,2,2,2,2,0,0,0,0,1],
-                    [1,0,1,1,1,0,1,2,2,2,2,2,0,0,0,0,1],
+                    [1,0,2,2,2,0,1,2,2,2,2,2,0,0,0,0,1],
+                    [1,0,2,2,2,0,1,2,2,2,2,2,0,0,0,0,1],
+                    [1,0,2,2,2,0,1,2,2,2,2,2,0,0,0,0,1],
                     [1,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
                     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
                 ],
-                room1Name: "SALA DE ARTE",
-                room2Name: "SALA DE ARQUITECTURA",
-                room3Name: "NUEVA SALA",
+                room1Name: "Sala 1",
+                room2Name: "Sala 2",
+                room3Name: "Sala 3",
+                room4Name: "Sala 4",
+                room5Name: "Sala 5",
                 artworks: [
     {
         "title": "El Partenón",
@@ -1397,8 +1564,9 @@
             const infoPanelActive = document.getElementById('info-panel').classList.contains('active');
             const saveActive = document.getElementById('save-menu').style.display === 'flex';
             const loginActive = document.getElementById('login-menu').style.display === 'flex';
+            const wpActive = document.getElementById('wp-menu').style.display === 'flex';
             
-            if(!STATE.taskbarOpen && !infoPanelActive && !saveActive && !loginActive) {
+            if(!STATE.taskbarOpen && !infoPanelActive && !saveActive && !loginActive && !wpActive) {
                 blocker.style.display = 'flex';
             } else {
                 blocker.style.display = 'none';
@@ -1824,6 +1992,93 @@
             }
             scene.add(pyrGroup);
 
+            // ── Free-standing Wall at the center of Sala 3 (2m × 2m × 0.3m) ──
+            // Sala 3 spans grid cols 1-5 (x: 5-25), rows 1-4 (z: 5-20)
+            // Center: x = 3*tileSize = 15, z = 2.5*tileSize = 12.5
+            {
+                const fwW = 2, fwH = 4, fwD = 0.3;
+                const fwGeo = new THREE.BoxGeometry(fwW, fwH, fwD);
+                const fwGroup = new THREE.Group();
+                fwGroup.position.set(3 * CONFIG.tileSize, 0, 2.5 * CONFIG.tileSize);
+
+                // Add circular ceiling light above the monolith
+                // Ceiling at (15, 12.5) is at step 6 of the pyramid: y = 4 + 6*0.8 = 8.8
+                const lightCeilingY = 8.75;
+                const cLightGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.1, 32);
+                const cLightMat = new THREE.MeshStandardMaterial({
+                    color: 0x00ffff,
+                    emissive: 0x00ffff,
+                    emissiveIntensity: 2,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const cLightMesh = new THREE.Mesh(cLightGeo, cLightMat);
+                cLightMesh.position.set(0, lightCeilingY, 0); // Local to fwGroup if added here, but world is better for lights
+                // Actually, let's add it to the scene or a separate group. 
+                // Using fwGroup position as reference:
+                const worldPos = new THREE.Vector3(3 * CONFIG.tileSize, lightCeilingY, 2.5 * CONFIG.tileSize);
+                cLightMesh.position.copy(worldPos);
+                scene.add(cLightMesh);
+
+                const cPointLight = new THREE.PointLight(0x00ffff, 2, 15);
+                cPointLight.position.copy(worldPos);
+                cPointLight.position.y -= 0.5;
+                scene.add(cPointLight);
+
+                const fwMesh = new THREE.Mesh(fwGeo, solidMat);
+                fwMesh.position.y = fwH / 2; // bottom sits on the floor
+
+                // Build a manual wireframe grid (no diags) matching TRON style
+                const fwLinesPts = [];
+                const fwDivX = 4, fwDivY = 8, fwDivZ = 1;
+                // front/back faces (XY at z = ±fwD/2)
+                for (const zz of [-fwD/2, fwD/2]) {
+                    for (let i = 0; i <= fwDivX; i++) {
+                        const rx = -fwW/2 + (i/fwDivX)*fwW;
+                        fwLinesPts.push(new THREE.Vector3(rx, -fwH/2, zz), new THREE.Vector3(rx, fwH/2, zz));
+                    }
+                    for (let j = 0; j <= fwDivY; j++) {
+                        const ry = -fwH/2 + (j/fwDivY)*fwH;
+                        fwLinesPts.push(new THREE.Vector3(-fwW/2, ry, zz), new THREE.Vector3(fwW/2, ry, zz));
+                    }
+                }
+                // side faces (ZY at x = ±fwW/2)
+                for (const xx of [-fwW/2, fwW/2]) {
+                    for (let k = 0; k <= fwDivZ; k++) {
+                        const rz = -fwD/2 + (k/fwDivZ)*fwD;
+                        fwLinesPts.push(new THREE.Vector3(xx, -fwH/2, rz), new THREE.Vector3(xx, fwH/2, rz));
+                    }
+                }
+                // top/bottom edges connecting front to back
+                for (const yy of [-fwH/2, fwH/2]) {
+                    for (let i = 0; i <= fwDivX; i++) {
+                        const rx = -fwW/2 + (i/fwDivX)*fwW;
+                        fwLinesPts.push(new THREE.Vector3(rx, yy, -fwD/2), new THREE.Vector3(rx, yy, fwD/2));
+                    }
+                    for (let k = 0; k <= fwDivZ; k++) {
+                        const rz = -fwD/2 + (k/fwDivZ)*fwD;
+                        fwLinesPts.push(new THREE.Vector3(-fwW/2, yy, rz), new THREE.Vector3(fwW/2, yy, rz));
+                    }
+                }
+                const fwLinesGeo = new THREE.BufferGeometry();
+                fwLinesGeo.setFromPoints(fwLinesPts);
+                const fwLines = new THREE.LineSegments(fwLinesGeo, wireMat);
+                fwLines.position.y = fwH / 2;
+
+                fwGroup.add(fwMesh);
+                fwGroup.add(fwLines);
+                scene.add(fwGroup);
+
+                // Register for collision
+                fwMesh.geometry.computeBoundingBox();
+                fwMesh.userData.box = new THREE.Box3();
+                const fwMatrix = new THREE.Matrix4().makeTranslation(
+                    fwGroup.position.x, fwGroup.position.y + fwMesh.position.y, fwGroup.position.z
+                );
+                fwMesh.userData.box.copy(fwMesh.geometry.boundingBox).applyMatrix4(fwMatrix);
+                STATE.meshes.walls.push(fwMesh);
+            }
+
             // AUTO-TOUR PATH GENERATION (CatmullRom Spline through safe grid cells)
             const t = CONFIG.tileSize;
             // A comprehensive, perfectly calculated loop that visits all corners, 
@@ -1992,10 +2247,15 @@
                 } else {
                     // === REGULAR IMAGE (png, jpg, base64) ===
                     let imgUrl = art.image || '';
-                    if(imgUrl.includes('wikimedia.org')) {
+                    // Proxy ALL external URLs through wsrv.nl to avoid CORS issues
+                    if(imgUrl.startsWith('http')) {
                         imgUrl = 'https://wsrv.nl/?url=' + encodeURIComponent(imgUrl);
                     }
-                    const tex = loader.load(imgUrl);
+                    const tex = loader.load(imgUrl, 
+                        undefined, // onLoad
+                        undefined, // onProgress
+                        (err) => { console.warn('[TEXTURE] Failed to load:', art.image, err); }
+                    );
                     tex.colorSpace = THREE.SRGBColorSpace;
                     tex.needsUpdate = true; // Force update
                     mat = new THREE.MeshBasicMaterial({ map: tex });
@@ -2045,25 +2305,39 @@
             STATE.meshes.roomLabels = [];
 
             // Room 1 Center: x=65, z=12.5
-            const label1 = createTitleLabel(STATE.galleryData.room1Name || "SALA DE ARTE", '#ff00ff', '#00ffff');
+            const label1 = createTitleLabel(STATE.galleryData.room1Name || "Sala 1", '#ff00ff', '#00ffff');
             label1.scale.set(3, 3, 1); // Make it larger for halls
             label1.position.set(65, 3.2, 12.5);
             scene.add(label1);
             STATE.meshes.roomLabels.push(label1);
 
             // Room 2 Center: x=45, z=35
-            const label2 = createTitleLabel(STATE.galleryData.room2Name || "SALA DE ARQUITECTURA", '#ff00ff', '#00ffff');
+            const label2 = createTitleLabel(STATE.galleryData.room2Name || "Sala 2", '#ff00ff', '#00ffff');
             label2.scale.set(3, 3, 1);
             label2.position.set(45, 3.2, 35);
             scene.add(label2);
             STATE.meshes.roomLabels.push(label2);
 
             // Room 3 Center: x=15, z=12.5
-            const label3 = createTitleLabel(STATE.galleryData.room3Name || "NUEVA SALA", '#ff00ff', '#00ffff');
+            const label3 = createTitleLabel(STATE.galleryData.room3Name || "Sala 3", '#ff00ff', '#00ffff');
             label3.scale.set(3, 3, 1);
-            label3.position.set(15, 3.2, 12.5);
+            label3.position.set(15, 5, 12.5);
             scene.add(label3);
             STATE.meshes.roomLabels.push(label3);
+
+            // Room 4 Center: cols 7-9 rows 1-4 → x=8*5=40, z=2.5*5=12.5
+            const label4 = createTitleLabel(STATE.galleryData.room4Name || "Sala 4", '#ff00ff', '#00ffff');
+            label4.scale.set(3, 3, 1);
+            label4.position.set(40, 3.2, 12.5);
+            scene.add(label4);
+            STATE.meshes.roomLabels.push(label4);
+
+            // Room 5 Center: cols 2-4 rows 6-8 → x=3*5=15, z=7*5=35
+            const label5 = createTitleLabel(STATE.galleryData.room5Name || "Sala 5", '#ff00ff', '#00ffff');
+            label5.scale.set(3, 3, 1);
+            label5.position.set(15, 3.2, 35);
+            scene.add(label5);
+            STATE.meshes.roomLabels.push(label5);
         }
 
         window.toggleTitles = function(visible) {
@@ -2502,6 +2776,18 @@
                     return;
                 }
 
+                // WordPress Posts Menu Toggle (P)
+                if(e.code === 'KeyP') {
+                    if (!STATE.isAuthenticated) {
+                        showLoginMenu(() => openWpMenu());
+                        return;
+                    }
+                    const wm = document.getElementById('wp-menu');
+                    if(wm.style.display === 'flex') closeWpMenu();
+                    else openWpMenu();
+                    return;
+                }
+
                 function toggleTaskbarOpen() {
                     STATE.taskbarOpen = !STATE.taskbarOpen;
                     const tb = document.getElementById('taskbar');
@@ -2530,6 +2816,8 @@
                         if (document.getElementById('tb-room1-name')) document.getElementById('tb-room1-name').value = STATE.galleryData.room1Name || "";
                         if (document.getElementById('tb-room2-name')) document.getElementById('tb-room2-name').value = STATE.galleryData.room2Name || "";
                         if (document.getElementById('tb-room3-name')) document.getElementById('tb-room3-name').value = STATE.galleryData.room3Name || "";
+                        if (document.getElementById('tb-room4-name')) document.getElementById('tb-room4-name').value = STATE.galleryData.room4Name || "";
+                        if (document.getElementById('tb-room5-name')) document.getElementById('tb-room5-name').value = STATE.galleryData.room5Name || "";
 
                         if (art) {
                             STATE.selectedArtwork = art.id;
@@ -2693,9 +2981,13 @@
             STATE.taskbarOpen = false;
             document.getElementById('taskbar').classList.remove('active');
             
-            // Safeguard: Reset camera rotation artifacts and ensure it's vertical
-            // Sometimes mouse movements while unlocked accumulate in controls/camera
-            camera.rotation.z = 0; 
+            // Full camera orientation reset to prevent inverted/flipped view
+            // Preserve only the Y rotation (horizontal look direction)
+            const currentYaw = camera.rotation.y;
+            camera.rotation.set(0, currentYaw, 0, 'YXZ');
+            camera.up.set(0, 1, 0);
+            camera.quaternion.normalize();
+            camera.position.y = CONFIG.cameraHeight;
             
             controls.lock();
             console.log("[UI] Taskbar closed, camera stabilized.");
@@ -3384,6 +3676,9 @@
             // Save global room names
             STATE.galleryData.room1Name = document.getElementById('tb-room1-name').value;
             STATE.galleryData.room2Name = document.getElementById('tb-room2-name').value;
+            STATE.galleryData.room3Name = document.getElementById('tb-room3-name').value;
+            STATE.galleryData.room4Name = document.getElementById('tb-room4-name').value;
+            STATE.galleryData.room5Name = document.getElementById('tb-room5-name').value;
             buildRoomLabels(); // Re-render labels with new names
             
             // URL is populated automatically by the FileReader when a file is uploaded
@@ -3477,6 +3772,30 @@
             closeTaskbar(); // Close the menu after deletion
         };
 
+        window.clearGallery = function() {
+            if (!confirm('⚠️ ¿Estás seguro de que deseas BORRAR TODAS las obras de la galería?\n\nEsta acción no se puede deshacer.')) return;
+            
+            STATE.galleryData.artworks = [];
+            buildArtworks();
+            showToast('🗑 Galería vaciada. Todas las obras han sido eliminadas.', 'info');
+            
+            // Auto-save to server
+            const configName = document.getElementById('menu-config-name')?.value || document.getElementById('tb-config-name')?.value || 'default';
+            fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: configName, data: STATE.galleryData })
+            }).then(r => r.json()).then(res => {
+                if (res.ok) showToast('Galería vacía guardada en servidor.', 'success');
+            }).catch(err => {
+                console.error('[CLEAR] Save error:', err);
+            });
+            
+            // Close save menu
+            document.getElementById('save-menu').style.display = 'none';
+            controls.lock();
+        };
+
         // Media Upload Listener
         document.getElementById('tb-file').addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -3496,6 +3815,348 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
+
+        // ==========================================
+        // WORDPRESS POSTS MANAGER (Menu P)
+        // ==========================================
+        
+        // Store WordPress posts per gallery section (0=Sala1, 1=Sala2, 2=Sala3)
+        const WP_POSTS = [[], [], [], [], []];
+        const WP_BASE = 'https://zirkeldep.com';
+        
+        // Room definitions: which grid zone each room occupies, for artwork placement
+        // Room 1 (grid type 2, top-right: cols 11-15, rows 1-4)
+        // Room 2 (grid type 2, middle: cols 7-11, rows 6-8)
+        // Room 3 (grid type 3, pyramid room: cols 1-5, rows 1-4)
+        // Room 4 (grid type 2, top-center: cols 7-9, rows 1-4)
+        // Room 5 (grid type 2, bottom-left: cols 2-4, rows 6-8)
+        const ROOM_ZONES = [
+            { // Sala 1: Right exhibition room - walls at x=77.45 (col 15) facing West
+                wallX: 77.45, wallZStart: 5, wallZStep: 5, wallRy: -Math.PI/2, roomLabel: 'room1'
+            },
+            { // Sala 2: Middle exhibition room - walls at x=62.55 (col 12+) facing West  
+                wallX: 62.55, wallZStart: 30, wallZStep: 5, wallRy: -Math.PI/2, roomLabel: 'room2'
+            },
+            { // Sala 3: Pyramid room - walls at x=2.55 (col 0) facing East
+                wallX: 2.55, wallZStart: 5, wallZStep: 5, wallRy: Math.PI/2, roomLabel: 'room3'
+            },
+            { // Sala 4: Top center room - north wall at z=2.55 (row 0) facing South
+                wallX: 35, wallZStart: 2.55, wallZStep: 0, wallRy: 0,
+                // Use east wall instead: x=47.45 (col 9) facing West
+                wallXAlt: 47.45, wallZStartAlt: 5, wallZStepAlt: 5, wallRyAlt: -Math.PI/2, roomLabel: 'room4'
+            },
+            { // Sala 5: Bottom left room - east wall at x=22.55 (col 4+) facing West
+                wallX: 22.55, wallZStart: 30, wallZStep: 5, wallRy: -Math.PI/2, roomLabel: 'room5'
+            }
+        ];
+
+        async function wpProxy(apiPath) {
+            const fullUrl = WP_BASE + apiPath;
+            try {
+                // Try server proxy first (avoids CORS)
+                const res = await fetch('/api/wp-proxy?url=' + encodeURIComponent(fullUrl), 
+                    { signal: AbortSignal.timeout(10000) });
+                if (res.ok) return await res.json();
+            } catch(e) { /* fall through to direct */ }
+            // Fallback: direct fetch (may fail due to CORS)
+            const res = await fetch(fullUrl, { signal: AbortSignal.timeout(10000) });
+            return res.json();
+        }
+
+        async function fetchWpCategories() {
+            try {
+                const cats = await wpProxy('/wp-json/wp/v2/categories?per_page=100');
+                return cats.filter(c => c.count > 0);
+            } catch(e) {
+                console.error('[WP] Categories fetch error:', e);
+                return [];
+            }
+        }
+
+        async function fetchWpPostByUrl(postUrl) {
+            // Extract slug or ID from URL
+            // Try searching by slug first
+            const urlObj = new URL(postUrl);
+            const pathParts = urlObj.pathname.replace(/\/$/, '').split('/');
+            const slug = pathParts[pathParts.length - 1];
+            
+            // Try by slug
+            let posts = await wpProxy(`/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_embed=1`);
+            if (!Array.isArray(posts) || posts.length === 0) {
+                // Try by URL in search
+                posts = await wpProxy(`/wp-json/wp/v2/posts?search=${encodeURIComponent(slug)}&_embed=1`);
+            }
+            if (!Array.isArray(posts) || posts.length === 0) throw new Error('Post not found for URL: ' + postUrl);
+            
+            const post = posts[0];
+            return extractPostData(post, postUrl);
+        }
+
+        function extractPostData(post, originalUrl) {
+            const title = post.title?.rendered ? post.title.rendered.replace(/<[^>]+>/g, '') : 'Sin título';
+            const excerpt = post.excerpt?.rendered ? post.excerpt.rendered.replace(/<[^>]+>/g, '').trim() : '';
+            const content = post.content?.rendered ? post.content.rendered.replace(/<[^>]+>/g, '').trim().substring(0, 500) : '';
+            const link = post.link || originalUrl;
+            
+            // Get featured image from _embedded
+            let imageUrl = '';
+            if (post._embedded && post._embedded['wp:featuredmedia'] && post._embedded['wp:featuredmedia'][0]) {
+                const media = post._embedded['wp:featuredmedia'][0];
+                imageUrl = media.source_url || 
+                           media.media_details?.sizes?.medium_large?.source_url ||
+                           media.media_details?.sizes?.large?.source_url ||
+                           media.media_details?.sizes?.full?.source_url || '';
+            }
+            
+            return { title, description: excerpt || content, imageUrl, link, postId: post.id };
+        }
+
+        function renderWpPostList(galleryIdx) {
+            const list = document.getElementById('wp-list-' + galleryIdx);
+            const posts = WP_POSTS[galleryIdx];
+            list.innerHTML = '';
+            
+            if (posts.length === 0) {
+                list.innerHTML = '<div style="color:#666; font-size:0.8rem; padding:8px; text-align:center;">No hay posts. Agrega una URL o importa una categoría.</div>';
+                return;
+            }
+
+            posts.forEach((post, idx) => {
+                const item = document.createElement('div');
+                item.className = 'wp-post-item';
+                
+                const img = document.createElement('img');
+                img.src = post.imageUrl ? 'https://wsrv.nl/?url=' + encodeURIComponent(post.imageUrl) + '&w=100&h=100' : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect fill="%23333" width="50" height="50"/></svg>';
+                img.onerror = () => { img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect fill="%23333" width="50" height="50"/></svg>'; };
+                item.appendChild(img);
+
+                const info = document.createElement('div');
+                info.className = 'wp-post-info';
+                info.innerHTML = `<div class="wp-post-title">${post.title}</div><div class="wp-post-url">${post.link}</div>`;
+                item.appendChild(info);
+
+                const actions = document.createElement('div');
+                actions.className = 'wp-post-actions';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'tb-btn';
+                btnEdit.style.cssText = 'font-size:0.7rem; padding:4px 8px; background:#2c4b2c; border-color:#4a8b4a;';
+                btnEdit.innerText = '✏️';
+                btnEdit.title = 'Editar URL';
+                btnEdit.onclick = () => {
+                    const newUrl = prompt('Nueva URL del post WordPress:', post.link);
+                    if (newUrl && newUrl.trim()) {
+                        showToast('Actualizando post...', 'info');
+                        fetchWpPostByUrl(newUrl.trim()).then(data => {
+                            WP_POSTS[galleryIdx][idx] = data;
+                            renderWpPostList(galleryIdx);
+                            showToast('Post actualizado.', 'success');
+                        }).catch(e => showToast('Error: ' + e.message, 'error'));
+                    }
+                };
+                actions.appendChild(btnEdit);
+
+                const btnDel = document.createElement('button');
+                btnDel.className = 'tb-btn danger';
+                btnDel.style.cssText = 'font-size:0.7rem; padding:4px 8px;';
+                btnDel.innerText = '🗑';
+                btnDel.title = 'Eliminar';
+                btnDel.onclick = () => {
+                    WP_POSTS[galleryIdx].splice(idx, 1);
+                    renderWpPostList(galleryIdx);
+                };
+                actions.appendChild(btnDel);
+
+                item.appendChild(actions);
+                list.appendChild(item);
+            });
+        }
+
+        window.addWpPost = async function(galleryIdx) {
+            const input = document.getElementById('wp-input-' + galleryIdx);
+            const url = input.value.trim();
+            if (!url) return showToast('Pega una URL de post WordPress válida.', 'error');
+            if (!url.includes('zirkeldep.com') && !url.startsWith('http')) return showToast('URL inválida.', 'error');
+
+            input.disabled = true;
+            showToast('Obteniendo datos del post...', 'info');
+            try {
+                const postData = await fetchWpPostByUrl(url);
+                WP_POSTS[galleryIdx].push(postData);
+                renderWpPostList(galleryIdx);
+                input.value = '';
+                showToast(`"${postData.title}" agregado.`, 'success');
+            } catch(e) {
+                console.error('[WP] Add post error:', e);
+                showToast('No se pudo cargar el post: ' + e.message, 'error');
+            } finally {
+                input.disabled = false;
+            }
+        };
+
+        window.importWpCategory = async function(galleryIdx) {
+            const sel = document.getElementById('wp-cat-' + galleryIdx);
+            const catId = sel.value;
+            if (!catId) return showToast('Selecciona una categoría primero.', 'error');
+
+            showToast('Importando posts de la categoría...', 'info');
+            try {
+                const posts = await wpProxy(`/wp-json/wp/v2/posts?categories=${catId}&per_page=50&_embed=1`);
+                if (!Array.isArray(posts) || posts.length === 0) {
+                    return showToast('No se encontraron posts en esa categoría.', 'error');
+                }
+
+                let added = 0;
+                for (const post of posts) {
+                    const data = extractPostData(post, post.link);
+                    // Avoid duplicates by postId
+                    if (!WP_POSTS[galleryIdx].find(p => p.postId === data.postId)) {
+                        WP_POSTS[galleryIdx].push(data);
+                        added++;
+                    }
+                }
+                renderWpPostList(galleryIdx);
+                showToast(`${added} posts importados.`, 'success');
+            } catch(e) {
+                console.error('[WP] Import category error:', e);
+                showToast('Error al importar: ' + e.message, 'error');
+            }
+        };
+
+        window.applyWpPostsToGallery = function(galleryIdx) {
+            const posts = WP_POSTS[galleryIdx];
+            if (posts.length === 0) return showToast('No hay posts para aplicar.', 'error');
+
+            const zone = ROOM_ZONES[galleryIdx];
+            const artH = CONFIG.wallHeight / 2 - 0.2; // Eye level
+            const spacing = 5; // 5m between each artwork
+
+            // Remove existing WP-generated artworks for this gallery
+            STATE.galleryData.artworks = STATE.galleryData.artworks.filter(
+                a => !(a.wpGallery === galleryIdx)
+            );
+
+            posts.forEach((post, i) => {
+                const zPos = zone.wallZStart + (i * zone.wallZStep);
+                const newArt = {
+                    id: 'wp_' + galleryIdx + '_' + (post.postId || i) + '_' + Date.now(),
+                    title: post.title,
+                    description: post.description,
+                    author: 'WordPress',
+                    image: post.imageUrl,
+                    linkUrl: post.link,
+                    aspect: 'vertical',
+                    x: zone.wallX,
+                    y: artH,
+                    z: zPos,
+                    rx: 0,
+                    ry: zone.wallRy,
+                    rz: 0,
+                    wpGallery: galleryIdx // Tag for future updates
+                };
+                STATE.galleryData.artworks.push(newArt);
+            });
+
+            buildArtworks();
+            showToast(`${posts.length} obras de WordPress aplicadas a Sala ${galleryIdx + 1}.`, 'success');
+            closeWpMenu();
+        };
+
+        async function openWpMenu() {
+            const menu = document.getElementById('wp-menu');
+            menu.style.display = 'flex';
+            controls.unlock();
+
+            // Update room labels
+            document.getElementById('wp-room1-label').innerText = STATE.galleryData.room1Name || 'Sala 1';
+            document.getElementById('wp-room2-label').innerText = STATE.galleryData.room2Name || 'Sala 2';
+            document.getElementById('wp-room3-label').innerText = STATE.galleryData.room3Name || 'Sala 3';
+            document.getElementById('wp-room4-label').innerText = STATE.galleryData.room4Name || 'Sala 4';
+            document.getElementById('wp-room5-label').innerText = STATE.galleryData.room5Name || 'Sala 5';
+
+            // Render existing lists
+            for (let i = 0; i < 5; i++) renderWpPostList(i);
+
+            // Load categories into all selects
+            try {
+                const cats = await fetchWpCategories();
+                [0, 1, 2, 3, 4].forEach(i => {
+                    const sel = document.getElementById('wp-cat-' + i);
+                    sel.innerHTML = '<option value="">-- Seleccionar categoría --</option>';
+                    cats.forEach(cat => {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.innerText = cat.name + ' (' + cat.count + ' posts)';
+                        sel.appendChild(opt);
+                    });
+                });
+            } catch(e) {
+                console.error('[WP] Load categories error:', e);
+                [0,1,2,3,4].forEach(i => {
+                    document.getElementById('wp-cat-' + i).innerHTML = '<option value="">Error cargando categorías</option>';
+                });
+            }
+        }
+        window.openWpMenu = openWpMenu;
+
+        function closeWpMenu() {
+            document.getElementById('wp-menu').style.display = 'none';
+            if (!STATE.taskbarOpen) controls.lock();
+        }
+        window.closeWpMenu = closeWpMenu;
+
+        // ==========================================
+        // AI INTERPRETATION (Info Panel Column 2)
+        // ==========================================
+        async function generateAiInterpretation(text) {
+            const aiEl = document.getElementById('info-ai-text');
+            if (!text || text.length < 10) {
+                aiEl.innerText = 'Sin descripción suficiente para interpretar.';
+                return;
+            }
+            aiEl.innerText = '⏳ Generando interpretación...';
+
+            try {
+                // Use server-side AI proxy to keep API key secure
+                const res = await fetch('/api/ai-interpret', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text.substring(0, 400) }),
+                    signal: AbortSignal.timeout(20000)
+                });
+                const data = await res.json();
+                if (data.interpretation) {
+                    aiEl.innerText = data.interpretation;
+                    return;
+                }
+            } catch(e) {
+                console.warn('[AI] Server proxy failed:', e.message);
+            }
+            // Fallback: creative local interpretation
+            const words = text.split(' ').slice(0, 10).join(' ');
+            aiEl.innerText = `Una obra que evoca "${words}..." — su presencia en la galería invita a la reflexión sobre el espacio, el tiempo y la memoria colectiva.`;
+        }
+
+        // ==========================================
+        // PATCH: Info Panel click to trigger AI
+        // ==========================================
+        // Override the mousedown handler section to also trigger AI
+        const _origMouseDown = document.onmousedown;
+        document.addEventListener('mousedown_wp_patch', () => {});
+        // We patch via the existing mousedown already registered — instead we hook into closeInfoPanel:
+        const _origCloseInfoPanel = window.closeInfoPanel;
+        
+        // Hook into the existing artwork click to trigger AI interpretation
+        // (We patch by intercepting when info-panel becomes active)
+        const infoPanelObserver = new MutationObserver((mutations) => {
+            mutations.forEach(m => {
+                if (m.target.id === 'info-panel' && m.target.classList.contains('active')) {
+                    const desc = document.getElementById('info-desc').innerText;
+                    generateAiInterpretation(desc);
+                }
+            });
+        });
+        infoPanelObserver.observe(document.getElementById('info-panel'), { attributes: true, attributeFilter: ['class'] });
 
         // Start
         animate();
