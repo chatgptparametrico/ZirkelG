@@ -122,7 +122,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // ==========================================
 // USERS DB VIA VERCEL BLOB
 // ==========================================
-const USERS_BLOB_NAME = 'users/users.json';
+// Use a secret prefix so the URL is unguessable even though Vercel Blob is technically "public"
+const BLOB_SECRET_PREFIX = process.env.BLOB_SECRET_PREFIX || 'zkg_a8f3d12b_c6e7_4a09_8f2e_1b3c9d0e5f71';
+const USERS_BLOB_NAME = `${BLOB_SECRET_PREFIX}/users.json`;
 const DEFAULT_USERS = { admin: 'Entheus827$' };
 
 async function readUsersBlob() {

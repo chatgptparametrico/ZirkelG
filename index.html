@@ -372,6 +372,23 @@
 
         <p style="font-size:0.75rem; color:#666; font-style:italic; margin-bottom:15px;">Tip: El archivo ZIP incluye el JSON y todos los archivos multimedia subidos.</p>
         
+        <div style="border-top:1px solid #333; padding-top:15px; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:pointer;" onclick="toggleUserPanel()">
+                <label style="font-size:0.8rem; color:#888; cursor:pointer;">👤 GESTIÓN DE USUARIOS:</label>
+                <span id="user-panel-toggle" style="color:#0ff; font-size:0.8rem;">▶ EXPANDIR</span>
+            </div>
+            <div id="user-management-panel" style="display:none; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="new-username" placeholder="Nuevo usuario" class="tb-input" style="flex:1; font-size:0.85rem; padding:8px;">
+                    <input type="password" id="new-password" placeholder="Contraseña" class="tb-input" style="flex:1; font-size:0.85rem; padding:8px;">
+                    <button class="tb-btn primary" style="padding:8px 12px; font-size:0.8rem; white-space:nowrap;" onclick="addUser()">➕ Agregar</button>
+                </div>
+                <div id="users-list" style="max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; background:rgba(0,0,0,0.3); padding:8px; border-radius:8px;">
+                    <span style="color:#666; font-size:0.8rem;">Haz clic en "Expandir" para cargar...</span>
+                </div>
+            </div>
+        </div>
+
         <button class="tb-btn" onclick="closeSaveMenu()" style="background:#333; padding:12px;">✕ CERRAR MENÚ</button>
     </div>
 
@@ -3227,6 +3244,103 @@
             }
         }
         window.deleteFromServer = deleteFromServer;
+
+        // ==========================================
+        // USER MANAGEMENT
+        // ==========================================
+        let userPanelOpen = false;
+
+        window.toggleUserPanel = async function() {
+            userPanelOpen = !userPanelOpen;
+            const panel = document.getElementById('user-management-panel');
+            const toggle = document.getElementById('user-panel-toggle');
+            if (userPanelOpen) {
+                panel.style.display = 'flex';
+                toggle.innerText = '▼ OCULTAR';
+                await refreshUsersList();
+            } else {
+                panel.style.display = 'none';
+                toggle.innerText = '▶ EXPANDIR';
+            }
+        };
+
+        async function refreshUsersList() {
+            const list = document.getElementById('users-list');
+            list.innerHTML = '<span style="color:#888; font-size:0.8rem;">Cargando...</span>';
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                list.innerHTML = '';
+                if (!data.users || data.users.length === 0) {
+                    list.innerHTML = '<span style="color:#666; font-size:0.8rem;">No hay usuarios.</span>';
+                    return;
+                }
+                data.users.forEach(username => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:4px 6px; background:rgba(255,255,255,0.04); border-radius:4px;';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.style.cssText = 'flex:1; font-size:0.85rem; color:#ddd;';
+                    nameSpan.innerText = '👤 ' + username;
+                    row.appendChild(nameSpan);
+                    if (username !== 'admin') {
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'tb-btn danger';
+                        delBtn.style.cssText = 'font-size:0.7rem; padding:3px 8px;';
+                        delBtn.innerText = 'Eliminar';
+                        delBtn.onclick = () => deleteUser(username);
+                        row.appendChild(delBtn);
+                    } else {
+                        const badge = document.createElement('span');
+                        badge.style.cssText = 'font-size:0.7rem; color:#f90; padding:3px 8px;';
+                        badge.innerText = 'ADMIN';
+                        row.appendChild(badge);
+                    }
+                    list.appendChild(row);
+                });
+            } catch (err) {
+                list.innerHTML = '<span style="color:#f33; font-size:0.8rem;">Error al cargar usuarios.</span>';
+            }
+        }
+
+        window.addUser = async function() {
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value.trim();
+            if (!username || !password) return showToast('Completa usuario y contraseña.', 'error');
+            try {
+                const res = await fetch('/api/users/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Usuario "${username}" agregado.`, 'success');
+                    document.getElementById('new-username').value = '';
+                    document.getElementById('new-password').value = '';
+                    await refreshUsersList();
+                } else {
+                    showToast('Error: ' + (data.error || 'desconocido'), 'error');
+                }
+            } catch (err) {
+                showToast('Error de conexión.', 'error');
+            }
+        };
+
+        window.deleteUser = async function(username) {
+            if (!confirm(`¿Eliminar el usuario "${username}"?`)) return;
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Usuario "${username}" eliminado.`, 'info');
+                    await refreshUsersList();
+                } else {
+                    showToast('Error: ' + (data.error || 'desconocido'), 'error');
+                }
+            } catch (err) {
+                showToast('Error de conexión.', 'error');
+            }
+        };
 
         function downloadZipFromMenu() {
             const name = document.getElementById('menu-config-name').value.trim();
