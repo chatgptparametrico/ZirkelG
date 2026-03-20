@@ -3776,27 +3776,30 @@
         };
 
         window.clearGallery = function() {
-            if (!confirm('⚠️ ¿Estás seguro de que deseas BORRAR TODAS las obras de la galería?\n\nEsta acción no se puede deshacer.')) return;
+            if (!confirm('¿Estás seguro de que deseas BORRAR TODAS las obras de la galería?\n\nEsta acción no se puede deshacer.')) return;
             
+            console.log('[CLEAR] Clearing all artworks...');
             STATE.galleryData.artworks = [];
             buildArtworks();
             showToast('🗑 Galería vaciada. Todas las obras han sido eliminadas.', 'info');
             
             // Auto-save to server
             const configName = document.getElementById('menu-config-name')?.value || document.getElementById('tb-config-name')?.value || 'default';
+            console.log('[CLEAR] Saving empty gallery as:', configName);
             fetch('/api/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: configName, data: STATE.galleryData })
             }).then(r => r.json()).then(res => {
-                if (res.ok) showToast('Galería vacía guardada en servidor.', 'success');
+                console.log('[CLEAR] Save response:', res);
+                if (res.message) showToast('Galería vacía guardada en servidor.', 'success');
             }).catch(err => {
                 console.error('[CLEAR] Save error:', err);
+                showToast('Error al guardar en servidor.', 'error');
             });
             
-            // Close save menu
-            document.getElementById('save-menu').style.display = 'none';
-            controls.lock();
+            // Close save menu and return to gallery
+            closeSaveMenu();
         };
 
         // Media Upload Listener
