@@ -74,35 +74,94 @@ app.get('/api/env', (req, res) => {
 });
 
 // Multer setup for file uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, UPLOADS_DIR);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage });
+let upload;
+if (IS_VERCEL) {
+    // Use memory storage on Vercel (no filesystem needed, upload to Blob directly)
+    upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+} else {
+    // Use disk storage locally
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, UPLOADS_DIR);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            cb(null, uniqueSuffix + path.extname(file.originalname));
+        }
+    });
+    upload = multer({ storage });
+}
 
 // API: Upload Media
+
+// API: Media Proxy (Resolves local paths to Vercel Blob if present)
+app.get('/api/media/:filename', async (req, res) => {
+    const { filename } = req.params;
+    console.log(`[SERVER] Media proxy request: ${filename}`);
+
+    if (HAS_BLOB) {
+        try {
+            const { blobs } = await list({ prefix: `media/${filename}` });
+            const exactBlob = blobs.find(b => b.pathname === `media/${filename}`);
+            if (exactBlob) {
+                console.log(`[SERVER] Proxying ${filename} from Blob: ${exactBlob.url}`);
+                const response = await fetch(exactBlob.url);
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType) res.setHeader('Content-Type', contentType);
+                    const buffer = Buffer.from(await response.arrayBuffer());
+                    return res.send(buffer);
+                }
+            }
+        } catch (e) {
+            console.error('[SERVER] Media proxy error:', e.message);
+        }
+    }
+
+    // Fallback to local FS
+    const localPath = path.join(UPLOADS_DIR, filename);
+    if (await fs.pathExists(localPath)) {
+        return res.sendFile(localPath);
+    }
+
+    res.status(404).json({ error: 'Media not found.' });
+});
+
+// DIAGNOSTIC: Check Blob Storage
+app.get('/api/diag-blob', async (req, res) => {
+    if (!HAS_BLOB) return res.json({ active: false, message: "No token found." });
+    try {
+        const { blobs } = await list({ limit: 10 });
+        res.json({
+            active: true,
+            count: blobs.length,
+            sample: blobs.map(b => b.pathname),
+            token_prefix: process.env.BLOB_READ_WRITE_TOKEN ? process.env.BLOB_READ_WRITE_TOKEN.substring(0, 10) : 'none'
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/upload', upload.single('file'), async (req, res) => {
     console.log('[SERVER] Received upload request');
     if (!req.file) {
         console.error('[SERVER] No file in request');
-        return res.status(400).send('No file uploaded.');
+        return res.status(400).json({ error: 'No file uploaded.' });
     }
     
+    const uniqueFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(req.file.originalname);
     console.log(`[SERVER] Processing file: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
 
-    // Fallback URL (local/tmp)
-    let fileUrl = `/data/uploads/${req.file.filename}`;
+    // Fallback URL (local)
+    let fileUrl = `/data/uploads/${req.file.filename || uniqueFilename}`;
 
     if (HAS_BLOB) {
         try {
             console.log('[VERCEL BLOB] Attempting upload...');
-            const fileBuffer = await fs.readFile(req.file.path);
-            const { url } = await put(`media/${req.file.filename}`, fileBuffer, {
+            // Use buffer from memory storage (Vercel) or read from disk (local)
+            const fileBuffer = req.file.buffer || await fs.readFile(req.file.path);
+            const { url } = await put(`media/${uniqueFilename}`, fileBuffer, {
                 access: 'public',
                 contentType: req.file.mimetype
             });
@@ -110,8 +169,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             console.log('[VERCEL BLOB] Upload successful:', fileUrl);
         } catch (err) {
             console.error('[VERCEL BLOB] Upload error:', err.message);
-            // We still return the local URL as fallback if possible, 
-            // but on Vercel this might fail later if /tmp is purged.
+            return res.status(500).json({ error: 'Upload to storage failed: ' + err.message });
         }
     } else {
         console.log('[SERVER] Saved locally to:', fileUrl);
@@ -126,7 +184,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // Use a secret prefix so the URL is unguessable even though Vercel Blob is technically "public"
 const BLOB_SECRET_PREFIX = process.env.BLOB_SECRET_PREFIX || 'zkg_a8f3d12b_c6e7_4a09_8f2e_1b3c9d0e5f71';
 const USERS_BLOB_NAME = `${BLOB_SECRET_PREFIX}/users.json`;
-const DEFAULT_USERS = { admin: 'FLLestructuras' };
+const DEFAULT_USERS = { admin: 'FLL$' };
 
 async function readUsersBlob() {
     if (!HAS_BLOB) return null;
@@ -173,14 +231,17 @@ app.post('/api/auth', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ success: false, message: 'Missing credentials' });
 
-    // Try Vercel Blob first
+    // Priority: Ultimate fallback for admin account (ensures FLL$ works immediately)
+    if (username === 'admin' && password === DEFAULT_USERS['admin']) {
+        return res.json({ success: true });
+    }
+
+    // Try Vercel Blob second
     if (HAS_BLOB) {
         try {
             const users = await readUsersBlob();
             if (users && users[username] === password) {
                 return res.json({ success: true });
-            } else if (users) {
-                return res.status(401).json({ success: false, message: 'Invalid credentials' });
             }
         } catch (err) {
             console.error('[SERVER] Blob auth error:', err.message);
@@ -322,6 +383,52 @@ app.get('/api/configs', async (req, res) => {
     } catch (err) {
         console.error('[SERVER] Read configs error:', err.message);
         res.status(500).send('Error reading configs.');
+    }
+});
+
+// API: Get Latest Config
+app.get('/api/configs/latest', async (req, res) => {
+    try {
+        let latestConfig = null;
+        let latestTime = 0;
+
+        if (HAS_BLOB) {
+            try {
+                const { blobs } = await list({ prefix: 'configs/' });
+                blobs.forEach(b => {
+                    const name = b.pathname.split('/').pop().replace('.json', '');
+                    const time = new Date(b.uploadedAt).getTime();
+                    if (name && time > latestTime) {
+                        latestTime = time;
+                        latestConfig = name;
+                    }
+                });
+            } catch (blobErr) {
+                console.error('[SERVER] Blob list error in latest:', blobErr.message);
+            }
+        }
+
+        if (await fs.pathExists(CONFIGS_DIR)) {
+            const files = await fs.readdir(CONFIGS_DIR);
+            for (const f of files) {
+                if (f.endsWith('.json')) {
+                    const stat = await fs.stat(path.join(CONFIGS_DIR, f));
+                    if (stat.mtimeMs > latestTime) {
+                        latestTime = stat.mtimeMs;
+                        latestConfig = f.replace('.json', '');
+                    }
+                }
+            }
+        }
+
+        if (latestConfig) {
+            res.json({ name: latestConfig });
+        } else {
+            res.status(404).json({ error: 'No configs found' });
+        }
+    } catch (err) {
+        console.error('[SERVER] Read latest config error:', err.message);
+        res.status(500).json({ error: 'Error reading latest config.' });
     }
 });
 
@@ -644,8 +751,12 @@ app.post('/api/ai-interpret', async (req, res) => {
     res.json({ interpretation: null });
 });
 
-const server = app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+// Only start listening when running locally (not on Vercel serverless)
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server running at http://localhost:${PORT}`);
+    });
+}
 
-module.exports = server;
+// Export the Express app for Vercel serverless
+module.exports = app;

@@ -9,3 +9,26 @@ tmp/
 .vscode/
 .DS_Store
 *.log
+*.txt
+*.png
+*.zip
+
+# Build and cache directories
+.cache/
+.vercel/
+build-folder/
+dist/
+eb-cache/
+out-package/
+test_zip/
+
+# Temporary and test scripts (optional, but good for cleanup)
+temp.js
+check.js
+debug.js
+fetch_test.js
+fix_all_images.js
+recover.js
+replace_images.js
+test_cors.js
+test_unsplash*.js
