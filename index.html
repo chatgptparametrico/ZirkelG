@@ -3768,6 +3768,9 @@
             buildArtworks();
             showToast('🗑 Galería vaciada. Todas las obras han sido eliminadas.', 'info');
 
+            // Close the save menu if it's open
+            if(typeof closeSaveMenu === 'function') closeSaveMenu();
+
             // Auto-save to server
             const configName = document.getElementById('menu-config-name')?.value || document.getElementById('tb-config-name')?.value || 'default';
             console.log('[CLEAR] Saving empty gallery as:', configName);
