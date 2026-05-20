@@ -4,9 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
 const archiver = require('archiver');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+const AdmZip = require('adm-zip');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -20,6 +18,26 @@ if (HAS_BLOB) {
     console.log('[SERVER] Vercel Blob integration active.');
 } else {
     console.warn('[SERVER] BLOB_READ_WRITE_TOKEN not found. Falling back to local/tmp FS.');
+}
+
+async function extractZipSafely(zipSource, destination) {
+    const zip = new AdmZip(zipSource);
+    const destinationRoot = path.resolve(destination);
+    const destinationPrefix = destinationRoot + path.sep;
+
+    for (const entry of zip.getEntries()) {
+        const entryPath = path.resolve(destination, entry.entryName);
+        if (entryPath !== destinationRoot && !entryPath.startsWith(destinationPrefix)) {
+            throw new Error('El ZIP contiene una ruta no permitida.');
+        }
+
+        if (entry.isDirectory) {
+            await fs.ensureDir(entryPath);
+        } else {
+            await fs.ensureDir(path.dirname(entryPath));
+            await fs.writeFile(entryPath, entry.getData());
+        }
+    }
 }
 
 // Detection for Vercel / serverless environments
@@ -598,10 +616,12 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
     try {
         await fs.ensureDir(extractPath);
 
-        // Use system tar for extraction (works for .zip on modern Windows and Unix)
-        // Note: Windows tar might need flags but usually works with -xf
         console.log(`[IMPORT] Extracting to: ${extractPath}`);
-        await execPromise(`tar -xf "${zipPath}" -C "${extractPath}"`);
+        const zipSource = req.file.buffer || (zipPath ? await fs.readFile(zipPath) : null);
+        if (!zipSource) {
+            throw new Error('No se pudo leer el archivo ZIP subido.');
+        }
+        await extractZipSafely(zipSource, extractPath);
 
         // 1. Process config
         const incomingJsonPath = path.join(extractPath, 'gallery_config.json');
@@ -656,7 +676,7 @@ app.post('/api/import-zip', upload.single('file'), async (req, res) => {
         // Cleanup
         try {
             if (await fs.pathExists(extractPath)) await fs.remove(extractPath);
-            if (await fs.pathExists(zipPath)) await fs.remove(zipPath);
+            if (zipPath && await fs.pathExists(zipPath)) await fs.remove(zipPath);
         } catch (cleanupErr) {
             console.error('[IMPORT] Cleanup error:', cleanupErr);
         }
