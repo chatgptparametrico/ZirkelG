@@ -576,6 +576,27 @@
               background:rgba(0,0,0,0.72); border:1px solid #87CEEB; color:#87CEEB;
               font-family:sans-serif; font-size:0.8rem; text-decoration:none; letter-spacing:0.03em;
               backdrop-filter:blur(4px);">&#8617; Volver a Zirkel</a>
+    <script>
+    // Vuelve a la copia del sitio desde la que se abrio la app: entrando desde
+    // /gitnew120/ tiene que devolver ahi y no a la raiz. Orden: parametro ?back=
+    // (lo agrega el sitio al abrir la app) -> referrer -> raiz. Se acepta SOLO
+    // zirkeldep.com: sin ese filtro el boton seria un redirector abierto.
+    (function () {
+        var admitida = function (valor) {
+            if (!valor) return null;
+            try {
+                var url = new URL(valor);
+                if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+                var host = url.hostname.toLowerCase();
+                var propio = /(^|\.)zirkeldep\.com$/.test(host) || host === 'zirkeldep-zmc.vercel.app';
+                return propio ? url.toString() : null;
+            } catch (e) { return null; }
+        };
+        var back = new URLSearchParams(window.location.search).get('back');
+        var destino = admitida(back) || admitida(document.referrer);
+        if (destino) document.getElementById('volver-zirkel').href = destino;
+    })();
+    </script>
 
     <div id="hud">
         <div id="crosshair"></div>
