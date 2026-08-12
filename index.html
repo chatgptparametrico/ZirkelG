@@ -601,6 +601,24 @@
     <div id="hud">
         <div id="crosshair"></div>
         <div id="minimap-container"><canvas id="minimap-canvas"></canvas></div>
+        <!-- Firma: el logo gira en 3D y al lado va la autoría. Encima del
+             indicador de versión, en la misma esquina. -->
+        <div id="firma-zirkel"
+            style="position:fixed; bottom:34px; right:10px; z-index:50; display:flex; align-items:center; gap:6px;
+                   pointer-events:none; user-select:none; font-family:sans-serif; font-size:0.66rem;
+                   color:#87CEEB; opacity:0.8; letter-spacing:0.02em;">
+            <span style="perspective:140px; display:inline-block; line-height:0;">
+                <img src="zirkel-logo.png" alt="Zirkel" class="logo-zirkel-3d"
+                     style="width:18px; height:18px; object-fit:contain; display:block;">
+            </span>
+            <span>Ing. Jorge Farez &reg;</span>
+        </div>
+        <style>
+            /* El logo de la firma gira sobre su eje vertical. */
+            @keyframes giroLogoZirkel { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+            .logo-zirkel-3d { animation: giroLogoZirkel 7s linear infinite; transform-style: preserve-3d; }
+        </style>
+
         <div id="version-watermark"
             style="position:fixed; bottom:8px; right:10px; z-index:50; font-family:monospace; font-size:0.6rem; color:#87CEEB; opacity:0.7; text-align:right; pointer-events:none; line-height:1.4;">
         </div>
