@@ -567,6 +567,16 @@
     <div id="toast-container"></div>
     <div id="canvas-container"></div>
 
+    <!-- Vuelta al sitio principal: ZirkelG se abre desde zirkeldep.com y sin esto
+         el único regreso era el botón del navegador. stopPropagation para que el
+         click no dispare además el "click para entrar a la galería" del overlay. -->
+    <a id="volver-zirkel" href="https://zirkeldep.com" title="Volver al sitio principal de Zirkel"
+       onclick="event.stopPropagation();"
+       style="position:fixed; top:12px; left:14px; z-index:200; padding:7px 14px; border-radius:10px;
+              background:rgba(0,0,0,0.72); border:1px solid #87CEEB; color:#87CEEB;
+              font-family:sans-serif; font-size:0.8rem; text-decoration:none; letter-spacing:0.03em;
+              backdrop-filter:blur(4px);">&#8617; Volver a Zirkel</a>
+
     <div id="hud">
         <div id="crosshair"></div>
         <div id="minimap-container"><canvas id="minimap-canvas"></canvas></div>
@@ -1342,10 +1352,15 @@
                 controls.lock();
             }
         });
+        // El boton de volver solo tiene sentido con el puntero libre: recorriendo
+        // la galeria el cursor esta capturado y no se puede clickear.
+        const btnVolver = document.getElementById('volver-zirkel');
         controls.addEventListener('lock', () => {
             blocker.style.display = 'none';
+            if (btnVolver) btnVolver.style.display = 'none';
         });
         controls.addEventListener('unlock', () => {
+            if (btnVolver) btnVolver.style.display = '';
             const infoPanelActive = document.getElementById('info-panel').classList.contains('active');
             const saveActive = document.getElementById('save-menu').style.display === 'flex';
             const loginActive = document.getElementById('login-menu').style.display === 'flex';

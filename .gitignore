@@ -32,3 +32,4 @@ recover.js
 replace_images.js
 test_cors.js
 test_unsplash*.js
+.vercel
